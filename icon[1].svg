@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="80" fill="#0c0d10"/>
+
+  <!-- Terminal window frame -->
+  <rect x="68" y="110" width="376" height="256" rx="14" fill="#16181d" stroke="#2c2f38" stroke-width="3"/>
+
+  <!-- Title bar -->
+  <rect x="68" y="110" width="376" height="36" rx="14" fill="#1d2027"/>
+  <rect x="68" y="132" width="376" height="14" fill="#1d2027"/>
+
+  <!-- Traffic lights -->
+  <circle cx="102" cy="128" r="7" fill="#f87171"/>
+  <circle cx="124" cy="128" r="7" fill="#fbbf24"/>
+  <circle cx="146" cy="128" r="7" fill="#34d399"/>
+
+  <!-- Code lines -->
+  <rect x="96" y="174" width="60" height="10" rx="3" fill="#60a5fa" opacity=".85"/>
+  <rect x="164" y="174" width="120" height="10" rx="3" fill="#34d399" opacity=".9"/>
+  <rect x="292" y="174" width="80" height="10" rx="3" fill="#e8e9ec" opacity=".4"/>
+
+  <rect x="96" y="200" width="40" height="10" rx="3" fill="#fbbf24" opacity=".8"/>
+  <rect x="144" y="200" width="90" height="10" rx="3" fill="#e8e9ec" opacity=".4"/>
+
+  <rect x="112" y="226" width="70" height="10" rx="3" fill="#60a5fa" opacity=".7"/>
+  <rect x="190" y="226" width="140" height="10" rx="3" fill="#34d399" opacity=".9"/>
+
+  <rect x="96" y="252" width="50" height="10" rx="3" fill="#e8e9ec" opacity=".35"/>
+  <rect x="154" y="252" width="100" height="10" rx="3" fill="#fbbf24" opacity=".75"/>
+
+  <!-- Cursor prompt line -->
+  <text x="96" y="300" font-family="monospace" font-size="22" fill="#34d399" font-weight="bold">▶_</text>
+  <!-- Blinking cursor block -->
+  <rect x="126" y="283" width="13" height="20" rx="2" fill="#34d399" opacity=".9"/>
+
+  <!-- Bottom glow -->
+  <ellipse cx="256" cy="420" rx="140" ry="18" fill="#34d399" opacity=".12"/>
+</svg>

@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>System-Override: Mensch vs. KI</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1D9E75">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="System Override">
+<link rel="apple-touch-icon" href="icon.svg">
+
+<!-- QR Code Generator -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.2.0/dist/tabler-icons.min.css">
+
+<style>
+:root{
+  --color-background-page:#0c0d10;
+  --color-background-primary:#16181d;
+  --color-background-secondary:#1d2027;
+  --color-border-tertiary:#2c2f38;
+  --color-border-secondary:#3a3e49;
+  --color-border-primary:#e8e9ec;
+  --color-text-primary:#e8e9ec;
+  --color-text-secondary:#969aa3;
+  --color-text-success:#34d399; --color-background-success:#0f2e22; --color-border-success:#1d6b50;
+  --color-text-info:#60a5fa;    --color-background-info:#0f2236;    --color-border-info:#2a5a8a;
+  --color-text-warning:#fbbf24; --color-background-warning:#2e2410; --color-border-warning:#8a6a17;
+  --color-text-danger:#f87171;  --color-background-danger:#2e1414;  --color-border-danger:#8a2d2d;
+  --border-radius-lg:14px; --border-radius-md:9px;
+  --font-mono:'SF Mono',ui-monospace,'Cascadia Mono','Roboto Mono',Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--color-background-page);color:var(--color-text-primary);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.45}
+body{max-width:480px;margin:0 auto;min-height:100vh}
+button{font-family:inherit;color:var(--color-text-primary);background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);cursor:pointer;font-size:14px;transition:filter .15s}
+button:hover:not(:disabled){filter:brightness(1.15)}
+button:active:not(:disabled){filter:brightness(.9)}
+button:disabled{opacity:.5;cursor:default}
+input,textarea,select{font-family:inherit;color:var(--color-text-primary);background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:9px 11px;font-size:14px;outline:none}
+input:focus,textarea:focus,select:focus{border-color:var(--color-border-secondary)}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.s{display:none;padding:1rem}.s.on{display:block}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem;margin-bottom:12px}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.sl{font-size:11px;letter-spacing:1.5px;color:var(--color-text-secondary);margin:1rem 0 6px}
+.badge{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:4px}
+.bi{background:var(--color-background-info);color:var(--color-text-info)}.bs{background:var(--color-background-success);color:var(--color-text-success)}.bw{background:var(--color-background-warning);color:var(--color-text-warning)}.be{background:var(--color-background-danger);color:var(--color-text-danger)}
+.tbox{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.25rem 1rem;text-align:center;margin-bottom:10px}
+@keyframes crp{0%,100%{background:var(--color-background-danger)}50%{background:var(--color-background-secondary)}}.tbox.cr{animation:crp 1s ease-in-out infinite}
+.tnum{font-family:var(--font-mono);font-size:52px;font-weight:500;letter-spacing:3px;line-height:1;color:var(--color-text-success)}.tnum.w{color:var(--color-text-warning)}.tnum.d{color:var(--color-text-danger)}
+.tfb{font-size:13px;font-weight:500;min-height:20px;margin-top:4px;opacity:0;transition:opacity .3s}.tfb.gn{color:var(--color-text-success)}.tfb.rd{color:var(--color-text-danger)}.tfb.on{opacity:1}
+.twrap{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:.75rem 1rem;margin-bottom:10px}
+.tbar{display:flex;gap:3px;height:22px}.tseg{flex:1;border-radius:3px}
+.za{font-size:12px;font-weight:500;margin-top:6px;padding:4px 8px;border-radius:4px;display:none}
+.za1{background:var(--color-background-info);color:var(--color-text-info)}.za2{background:var(--color-background-warning);color:var(--color-text-warning)}.za3{background:var(--color-background-danger);color:var(--color-text-danger)}
+.pb{display:flex;gap:4px;margin-bottom:10px}.ps{flex:1;height:4px;border-radius:2px;background:var(--color-background-secondary)}.ps.d{background:#1D9E75}.ps.c{background:#EF9F27}
+.dots{display:flex;gap:5px;flex-wrap:wrap;margin:6px 0 10px}.dot{width:9px;height:9px;border-radius:50%;background:var(--color-background-secondary);border:1px solid var(--color-border-secondary)}.dot.d{background:#1D9E75;border-color:#0F6E56}.dot.c{background:#EF9F27;border-color:#BA7517}
+.cin{font-family:var(--font-mono);font-size:18px;letter-spacing:3px;text-align:center;width:100%;text-transform:uppercase}.em{font-size:13px;color:var(--color-text-danger);min-height:20px;margin-top:4px}
+.boxwrap{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:2px}
+.cbox{width:34px;height:46px;padding:0;text-align:center;font-family:var(--font-mono);font-size:20px;font-weight:500;text-transform:uppercase;caret-color:var(--color-text-success)}
+.cbox:focus{border-color:var(--color-text-success);background:var(--color-background-secondary)}
+@keyframes ulpop{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}
+.ulreveal{animation:ulpop .45s cubic-bezier(.2,.8,.3,1.2)}
+.cbtn{width:100%;padding:.75rem;text-align:left;margin-bottom:8px;font-size:13px;display:flex;align-items:flex-start;gap:10px;line-height:1.5}
+.jkb{width:100%;padding:.75rem;margin-top:8px;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--color-text-warning);border-color:var(--color-border-warning)}
+.jkh{background:var(--color-background-warning);border:0.5px solid var(--color-border-warning);border-radius:var(--border-radius-md);padding:10px 12px;margin-top:8px;font-size:13px;color:var(--color-text-warning);line-height:1.6}
+.lbi{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);margin-bottom:6px;background:var(--color-background-primary)}.lbi.top{border:2px solid var(--color-border-warning)}
+.sedi{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px;margin-bottom:8px;background:var(--color-background-secondary)}
+.bkb{background:none;border:none;padding:0;font-size:13px;color:var(--color-text-secondary);cursor:pointer;display:flex;align-items:center;gap:4px;margin-bottom:1.5rem}
+.bosshdr{display:flex;align-items:center;justify-content:space-between;background:var(--color-background-danger);border-radius:var(--border-radius-md);padding:8px 12px;margin-bottom:10px}
+.bosstime{font-family:var(--font-mono);font-size:22px;font-weight:500;color:var(--color-text-danger)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── PWA Install Banner ── */
+#pwa-banner{display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;
+  background:var(--color-background-primary);border-top:0.5px solid var(--color-border-success);
+  padding:.85rem 1rem;max-width:480px;margin:0 auto;
+  animation:slideUp .3s ease-out}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+#pwa-banner.show{display:flex;align-items:center;gap:.75rem}
+#pwa-banner-icon{font-size:28px;flex-shrink:0}
+#pwa-banner-text{flex:1;min-width:0}
+#pwa-banner-text strong{display:block;font-size:13px;color:var(--color-text-primary);margin-bottom:2px}
+#pwa-banner-text span{font-size:11px;color:var(--color-text-secondary)}
+#pwa-banner-btn{padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;
+  background:var(--color-background-success);color:var(--color-text-success);
+  border:0.5px solid var(--color-border-success);flex-shrink:0}
+#pwa-banner-close{background:none;border:none;color:var(--color-text-secondary);font-size:20px;
+  padding:0 0 0 4px;flex-shrink:0;line-height:1}
+
+/* ── QR-Print-Ansicht ── */
+.qr-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:1.5rem}
+.qr-card{background:#fff;border-radius:12px;padding:.8rem .6rem;text-align:center;border:1px solid #dde}
+.qr-header{font-size:9px;letter-spacing:1.8px;color:#888;text-transform:uppercase;margin-bottom:3px}
+.qr-num{font-family:'SF Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:1.5px;color:#555;margin-bottom:5px}
+.qr-loc{font-size:12px;font-weight:700;color:#111;margin-bottom:8px;line-height:1.3;min-height:30px;display:flex;align-items:center;justify-content:center}
+.qr-type{font-size:9px;color:#888;letter-spacing:1px;text-transform:uppercase;margin-top:3px}
+.qr-pin-label{font-size:9px;letter-spacing:1.5px;color:#666;text-transform:uppercase;margin-top:9px;display:block}
+.qr-pin-box{font-family:'SF Mono',ui-monospace,Menlo,monospace;font-size:22px;font-weight:900;letter-spacing:7px;color:#111;border:2px solid #444;border-radius:6px;padding:4px 13px;margin-top:4px;display:inline-block;background:#f4f4f4}
+
+@media print{
+  @page{size:A4 portrait;margin:12mm}
+  body{background:#fff!important;color:#000!important;max-width:100%!important;padding:0!important;margin:0!important}
+  .s{display:none!important}
+  #sqr{display:block!important;padding:0!important}
+  .no-print{display:none!important}
+  h2.sr-only{display:none!important}
+  .qr-grid{grid-template-columns:1fr 1fr;gap:7mm;margin:0}
+  .qr-card{border:1pt solid #999;border-radius:7pt;padding:6mm;break-inside:avoid;page-break-inside:avoid}
+  .qr-header{font-size:8pt;margin-bottom:2mm}
+  .qr-num{font-size:9pt;margin-bottom:2mm}
+  .qr-loc{font-size:13pt;min-height:auto;margin-bottom:4mm}
+  .qr-type{font-size:8pt;margin-top:2mm}
+  .qr-pin-label{font-size:7pt;letter-spacing:1.5pt;margin-top:3mm}
+  .qr-pin-box{font-size:18pt;letter-spacing:6pt;border:1.5pt solid #222;padding:1.5mm 4mm;background:#efefef}
+  .qr-card::after{content:'SYSTEM-OVERRIDE \B7 MENSCH vs. KI';display:block;font-size:7pt;letter-spacing:2px;color:#bbb;margin-top:3mm}
+}
+.t3-crt{position:relative;margin-top:8px;border-radius:8px;padding:10px 12px;background:#06140a;border:1px solid #14361f;font-family:var(--font-mono);font-size:12px;line-height:1.5;color:#1c5c33;text-shadow:none;overflow:hidden;min-height:46px;transition:color .2s}
+.t3-crt::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,.25) 0 1px,transparent 1px 3px);pointer-events:none}
+.t3-crt.on{color:#39ff8c;text-shadow:0 0 6px rgba(57,255,140,.7),0 0 14px rgba(57,255,140,.4);border-color:#2f9e5c;background:#04240f}
+.t3-crt.flick{animation:crtflick .5s steps(2) 2}
+@keyframes crtflick{0%,100%{opacity:1}50%{opacity:.55}}
+.t3-pbtn{flex:1;padding:.7rem 0;font-size:18px;font-weight:700;font-family:var(--font-mono);border-radius:9px;letter-spacing:1px}
+#fxRed{position:fixed;inset:0;background:radial-gradient(circle,rgba(255,40,40,0) 35%,rgba(220,30,30,.55) 100%);opacity:0;pointer-events:none;z-index:9998;transition:opacity .12s}
+#fxRed.on{opacity:1}
+@keyframes tflash{0%,100%{box-shadow:none}50%{box-shadow:0 0 0 3px var(--color-border-danger);background:rgba(226,75,74,.18)}}
+.tbox-flash{animation:tflash .25s steps(1) 6}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+<h2 class="sr-only">System-Override: Mensch vs. KI – sofort spielbare Schnitzeljagd-App</h2>
+
+<!-- WELCOME -->
+<div id="sw" class="s on">
+  <div style="text-align:center;padding:2rem 0 1.5rem">
+    <p style="font-size:10px;letter-spacing:4px;color:var(--color-text-secondary);margin-bottom:6px">MISSION: ERDE RETTEN</p>
+    <h1 style="font-family:var(--font-mono);font-size:22px;font-weight:500;letter-spacing:3px">SYSTEM-OVERRIDE</h1>
+    <p style="font-family:var(--font-mono);font-size:11px;letter-spacing:2px;color:var(--color-text-secondary);margin-top:2px">MENSCH vs. KI</p>
+    <p style="font-size:13px;color:var(--color-text-secondary);margin-top:1rem;line-height:1.8">Eine übermächtige KI bedroht die Welt.<br>Ihr seid die einzigen, die sie stoppen können.</p>
+  </div>
+  <div class="g2" style="margin-bottom:12px">
+    <button onclick="showGLPinScreen()" style="padding:1.25rem .5rem;display:flex;flex-direction:column;align-items:center;gap:8px"><i class="ti ti-settings" style="font-size:24px"></i><span style="font-size:13px">Spielleiter</span></button>
+    <button onclick="SS('sj')" style="padding:1.25rem .5rem;display:flex;flex-direction:column;align-items:center;gap:8px"><i class="ti ti-terminal-2" style="font-size:24px"></i><span style="font-size:13px">Spieler</span></button>
+  </div>
+  <button onclick="SS('slb');loadLB()" style="width:100%;padding:.75rem;display:flex;align-items:center;justify-content:center;gap:8px"><i class="ti ti-trophy" style="font-size:18px"></i><span style="font-size:13px">Rangliste</span></button>
+</div>
+
+<!-- SPIELLEITER PIN -->
+<div id="sglpin" class="s">
+  <button class="bkb" onclick="SS('sw')"><i class="ti ti-arrow-left"></i> Zurück</button>
+  <div style="text-align:center;padding:2rem 0 1.5rem">
+    <i class="ti ti-shield-lock" style="font-size:44px;color:var(--color-text-warning)"></i>
+    <p style="font-size:11px;letter-spacing:3px;color:var(--color-text-secondary);margin-top:1rem">SPIELLEITER-ZUGANG</p>
+    <p style="font-size:13px;color:var(--color-text-secondary);margin-top:6px">PIN eingeben</p>
+  </div>
+  <div class="card" style="border-color:var(--color-border-warning);text-align:center">
+    <div class="boxwrap" id="glPinScreen">
+      <input class="cbox" maxlength="1" inputmode="numeric" autocomplete="off" autocorrect="off">
+      <input class="cbox" maxlength="1" inputmode="numeric" autocomplete="off" autocorrect="off">
+      <input class="cbox" maxlength="1" inputmode="numeric" autocomplete="off" autocorrect="off">
+      <input class="cbox" maxlength="1" inputmode="numeric" autocomplete="off" autocorrect="off">
+    </div>
+    <p id="glPinScreenErr" style="font-size:12px;color:var(--color-text-danger);text-align:center;min-height:18px;margin-top:10px"></p>
+  </div>
+</div>
+
+<!-- SETUP -->
+<div id="sg" class="s">
+  <button class="bkb" onclick="SS('sw')"><i class="ti ti-arrow-left"></i> Zurück</button>
+  <p class="sl" style="margin-top:0">SPIELEINSTELLUNGEN</p>
+  <div class="card">
+    <div class="g2" style="margin-bottom:10px">
+      <div><label style="font-size:12px;color:var(--color-text-secondary);display:block;margin-bottom:4px">Startzeit (Min.)</label><input type="number" id="cS" value="15" min="1" max="90" style="width:100%"></div>
+      <div><label style="font-size:12px;color:var(--color-text-secondary);display:block;margin-bottom:4px">Strafe (Sek.)</label><input type="number" id="cP" value="60" min="0" max="300" style="width:100%"></div>
+    </div>
+    <div><label style="font-size:12px;color:var(--color-text-secondary);display:block;margin-bottom:4px">KI rückt automatisch vor alle ... Sek. (0 = aus)</label><input type="number" id="cK" value="120" min="0" max="600" style="width:100%"></div>
+  </div>
+  <p class="sl">LOCATIONS</p>
+  <div id="stL"></div>
+  <div class="g2" style="margin-top:8px">
+    <button onclick="addSt()" style="padding:.75rem;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-plus"></i> Location</button>
+    <button onclick="saveCfg()" style="padding:.75rem;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-device-floppy"></i> Speichern</button>
+  </div>
+  <button onclick="resetCfg()" style="width:100%;padding:.6rem;margin-top:8px;font-size:12px;color:var(--color-text-secondary)"><i class="ti ti-refresh"></i> Auf Standard-Spiel zurücksetzen</button>
+  <button onclick="SS('sqr');loadCodes()" style="width:100%;padding:.75rem;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:7px;font-size:13px;color:var(--color-text-info);border-color:var(--color-border-info)"><i class="ti ti-id-badge" style="font-size:18px"></i> Stationskarten drucken</button>
+  <button onclick="showQRCode()" style="width:100%;padding:.75rem;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:7px;font-size:13px;color:var(--color-text-success);border-color:var(--color-border-success)"><i class="ti ti-qrcode" style="font-size:18px"></i> QR-Code generieren</button>
+  <p id="cfgM" style="font-size:13px;text-align:center;min-height:20px;margin-top:10px"></p>
+  <p class="sl" style="margin-top:.5rem">CODEWÖRTER</p>
+  <div id="cwList" style="background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:12px;margin-bottom:8px">
+    <p style="font-family:var(--font-mono);font-size:15px;letter-spacing:4px;text-align:center;color:var(--color-text-success);margin-bottom:10px;font-weight:600" id="cwPhrase">–</p>
+    <div id="cwTable" style="display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;font-size:12px"></div>
+  </div>
+  <p class="sl" style="margin-top:.5rem">EXPORT / IMPORT</p>
+  <div class="g2" style="margin-bottom:8px">
+    <button onclick="exportCfg()" style="padding:.75rem;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-copy"></i> Exportieren</button>
+    <button onclick="toggleImport()" style="padding:.75rem;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-file-import"></i> Importieren</button>
+  </div>
+  <div id="exportBox" style="display:none;margin-bottom:8px">
+    <textarea id="exportTA" rows="5" style="width:100%;font-size:11px;font-family:var(--font-mono);resize:vertical" readonly></textarea>
+    <p style="font-size:12px;color:var(--color-text-success);text-align:center;margin-top:4px">✓ In Zwischenablage kopiert – Text auch hier sichtbar</p>
+  </div>
+  <div id="importBox" style="display:none;margin-bottom:8px">
+    <textarea id="importTA" rows="5" placeholder="Config-JSON hier einfügen..." style="width:100%;font-size:11px;font-family:var(--font-mono);resize:vertical"></textarea>
+    <button onclick="importCfg()" style="width:100%;padding:.65rem;margin-top:6px;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-check"></i> Config laden &amp; speichern</button>
+    <p id="importM" style="font-size:12px;text-align:center;min-height:18px;margin-top:4px"></p>
+  </div>
+</div>
+
+<!-- JOIN -->
+<div id="sj" class="s">
+  <button class="bkb" onclick="SS('sw')"><i class="ti ti-arrow-left"></i> Zurück</button>
+  <div style="text-align:center;margin-bottom:2rem"><p style="font-size:11px;letter-spacing:2px;color:var(--color-text-secondary)">HACKER-GRUPPE</p><h2 style="font-size:20px;font-weight:500;margin-top:6px">Team-Name?</h2></div>
+  <p id="jInfo" style="font-size:12px;color:var(--color-text-success);text-align:center;margin-bottom:10px;display:none;padding:8px;background:var(--color-background-success);border-radius:var(--border-radius-md)"></p>
+  <div class="card"><label style="font-size:12px;color:var(--color-text-secondary);display:block;margin-bottom:6px">Team-Name</label><input type="text" id="jN" placeholder="z.B. Alpha Hackers" style="width:100%;font-size:16px" autocorrect="off"><p id="jE" class="em"></p></div>
+  <button onclick="startGame()" style="width:100%;padding:1rem;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px"><i class="ti ti-terminal-2"></i> Hack starten</button>
+</div>
+
+<!-- GAME -->
+<div id="sga" class="s">
+  <div class="row" style="margin-bottom:10px">
+    <div><span style="font-size:12px;font-weight:500" id="gN">–</span><span class="badge bi" id="phB" style="margin-left:6px">Phase 1</span></div>
+    <button onclick="SS('slb');loadLB()" style="padding:4px 10px;font-size:12px;display:flex;align-items:center;gap:4px"><i class="ti ti-trophy" style="font-size:14px"></i> Rangliste</button>
+  </div>
+  <div class="pb" id="pBar"></div>
+  <div class="tbox" id="tBox">
+    <p style="font-size:11px;letter-spacing:2px;color:var(--color-text-secondary);margin-bottom:4px">VERBLEIBENDE LEBENSZEIT</p>
+    <div class="tnum" id="tD">15:00</div>
+    <div class="tfb" id="tFb"></div>
+  </div>
+  <div class="twrap">
+    <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:500;margin-bottom:5px">
+      <span style="color:#1D9E75">🛡 HACKER</span>
+      <span style="font-size:10px;letter-spacing:1.5px;color:var(--color-text-secondary)">BEDROHUNGS-LEISTE</span>
+      <span style="color:#A32D2D">KI 💥</span>
+    </div>
+    <div class="tbar" id="thBar"></div>
+    <div class="za" id="zA"></div>
+    <p id="bkpInfo" style="font-size:11px;color:var(--color-text-success);margin-top:5px;display:none">🔋 Backup-System bereit: wendet eine Explosion einmalig ab</p>
+  </div>
+  <div class="dots" id="gD"></div>
+  <div class="card">
+    <div class="row" style="margin-bottom:8px"><span class="badge bi" id="stB">Location 1/8</span><span style="font-size:12px;color:var(--color-text-secondary)" id="stBon"></span></div>
+    <p style="font-size:15px;font-weight:500;margin-bottom:6px" id="stT">–</p>
+    <p style="font-size:13px;font-style:italic;color:var(--color-text-secondary);margin-bottom:10px;line-height:1.5" id="stSt"></p>
+    <p style="font-size:13px;line-height:1.7;white-space:pre-wrap" id="stD">–</p>
+  </div>
+  <div id="inp"></div>
+  <button class="jkb" id="jkBtn" onclick="useJoker()"><i class="ti ti-bulb"></i><span>Joker nutzen (–2 Min.)</span></button>
+  <div class="jkh" id="jkH" style="display:none"></div>
+</div>
+
+<!-- UNLOCK / NÄCHSTE LOCATION -->
+<div id="sunlock" class="s">
+  <div class="ulreveal" style="text-align:center;padding:2.5rem 0 1.25rem">
+    <i class="ti ti-lock-open" style="font-size:48px;color:#1D9E75"></i>
+    <p style="font-size:11px;letter-spacing:2px;color:var(--color-text-success);margin-top:1rem;margin-bottom:4px">ZUGANG GEKNACKT</p>
+    <p style="font-size:14px;font-weight:500;color:var(--color-text-success);min-height:20px" id="ulBonus"></p>
+    <p style="font-size:13px;color:var(--color-text-warning);margin-top:8px;display:none" id="ulExtra"></p>
+  </div>
+  <div class="card" style="text-align:center;border-color:var(--color-border-success)">
+    <p style="font-size:11px;letter-spacing:2px;color:var(--color-text-secondary);margin-bottom:6px">NÄCHSTE LOCATION</p>
+    <h2 style="font-size:24px;font-weight:600;margin-bottom:8px" id="ulLoc">–</h2>
+    <p style="font-size:13px;color:var(--color-text-secondary);line-height:1.5" id="ulHint">Lauft dorthin und knackt das nächste System!</p>
+  </div>
+  <div style="padding:1rem;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);margin-bottom:10px">
+    <p style="font-size:12px;text-align:center;color:var(--color-text-secondary);margin-bottom:10px">Findet das Codewort vor Ort und gebt es ein:</p>
+    <input id="ulWordInput" type="text" placeholder="CODEWORT" autocomplete="off" autocorrect="off" autocapitalize="characters" inputmode="text" style="width:100%;font-size:22px;text-align:center;font-family:var(--font-mono);letter-spacing:4px;text-transform:uppercase;margin-bottom:8px">
+    <p id="ulE" style="font-size:13px;color:var(--color-text-danger);text-align:center;min-height:18px;margin:6px 0"></p>
+    <button onclick="chkUlCode()" style="width:100%;padding:.75rem;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px"><i class="ti ti-check"></i> Weiter</button>
+  </div>
+  <button onclick="toggleGLPin()" style="width:100%;padding:.6rem;font-size:12px;color:var(--color-text-secondary)"><i class="ti ti-key" style="font-size:13px"></i> Spielleiter-Freischaltung</button>
+  <div id="glPinBox" style="display:none;margin-top:8px;padding:12px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-warning);border-radius:var(--border-radius-md)">
+    <p style="font-size:12px;color:var(--color-text-warning);margin-bottom:8px;text-align:center"><i class="ti ti-shield"></i> Spielleiter-PIN eingeben</p>
+    <div class="boxwrap" id="glPinWrap">
+      <input class="cbox" maxlength="1" inputmode="numeric" autocomplete="off" autocorrect="off">
+      <input class="cbox" maxlength="1" inputmode="numeric" autocomplete="off" autocorrect="off">
+      <input class="cbox" maxlength="1" inputmode="numeric" autocomplete="off" autocorrect="off">
+      <input class="cbox" maxlength="1" inputmode="numeric" autocomplete="off" autocorrect="off">
+    </div>
+    <p id="glE" style="font-size:12px;color:var(--color-text-danger);text-align:center;min-height:18px;margin-top:6px"></p>
+  </div>
+</div>
+
+<!-- GAME OVER -->
+<div id="sgo" class="s">
+  <div style="text-align:center;padding:2.5rem 0 1.5rem">
+    <i class="ti ti-bomb" style="font-size:52px;color:var(--color-text-danger)"></i>
+    <p style="font-size:11px;letter-spacing:2px;color:var(--color-text-danger);margin-top:1rem;margin-bottom:6px" id="goR">KI HAT GEWONNEN</p>
+    <h2 style="font-size:22px;font-weight:500;margin-bottom:8px" id="goN">–</h2>
+    <p style="font-size:13px;color:var(--color-text-secondary)" id="goM">Die KI hat gewonnen.</p>
+  </div>
+  <div class="card"><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:4px">Abgeschlossene Locations</p><p style="font-size:26px;font-weight:500" id="goSt">–</p></div>
+  <button onclick="SS('slb');loadLB()" style="width:100%;padding:1rem;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px"><i class="ti ti-trophy"></i> Rangliste</button>
+  <button onclick="SS('sw')" style="width:100%;padding:.75rem">Hauptmenü</button>
+</div>
+
+<!-- VICTORY -->
+<div id="svic" class="s">
+  <div style="text-align:center;padding:2.5rem 0 1.5rem">
+    <i class="ti ti-shield-check" style="font-size:52px;color:#1D9E75"></i>
+    <p style="font-size:11px;letter-spacing:2px;color:var(--color-text-success);margin-top:1rem;margin-bottom:6px">MAINFRAME ZERSTÖRT – WELT GERETTET!</p>
+    <h2 style="font-size:22px;font-weight:500;margin-bottom:4px" id="vN">–</h2>
+    <p style="font-size:13px;color:var(--color-text-secondary)">Die KI ist vernichtet. Bedrohungs-Leiste: 0!</p>
+  </div>
+  <div class="card" style="text-align:center"><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:6px">Verbleibende Lebenszeit</p><div class="tnum" style="font-size:44px" id="vT">–</div></div>
+  <button onclick="SS('slb');loadLB()" style="width:100%;padding:1rem;display:flex;align-items:center;justify-content:center;gap:8px"><i class="ti ti-trophy"></i> Rangliste</button>
+</div>
+
+<!-- LEADERBOARD -->
+<div id="slb" class="s">
+  <div class="row" style="margin-bottom:1.5rem">
+    <button class="bkb" style="margin-bottom:0" onclick="SS('sw')"><i class="ti ti-arrow-left"></i> Zurück</button>
+    <button onclick="loadLB()" style="padding:4px 10px;font-size:12px;display:flex;align-items:center;gap:4px"><i class="ti ti-refresh" style="font-size:14px"></i> Aktualisieren</button>
+  </div>
+  <p class="sl" style="margin-top:0">LIVE-RANGLISTE</p>
+  <div id="lbL"><p style="font-size:13px;color:var(--color-text-secondary)">Lade...</p></div>
+</div>
+
+<!-- QR PRINT-ANSICHT -->
+<div id="sqr" class="s">
+  <div class="no-print">
+    <div class="row" style="margin-bottom:1rem">
+      <button class="bkb" style="margin-bottom:0" onclick="SS('sg')"><i class="ti ti-arrow-left"></i> Zurück</button>
+      <button onclick="window.print()" style="padding:6px 14px;font-size:13px;display:flex;align-items:center;gap:6px;color:var(--color-text-info);border-color:var(--color-border-info)"><i class="ti ti-printer"></i> Drucken</button>
+    </div>
+    <p class="sl" style="margin-top:0">STATIONSKARTEN DRUCKEN</p>
+    <div class="card" style="margin-bottom:1rem">
+      <p style="font-size:13px;line-height:1.7;color:var(--color-text-secondary)">Ausdrucken, laminieren und an den Locations befestigen oder verstecken. Die Teams finden das Codewort vor Ort und geben es in der App ein, um die nächste Station freizuschalten.</p>
+    </div>
+  </div>
+  <div id="qrList" class="qr-grid"></div>
+</div>
+
+<!-- QR CODE SCREEN -->
+<div id="sqrcode" class="s">
+  <div class="no-print">
+    <div class="row" style="margin-bottom:1rem">
+      <button class="bkb" style="margin-bottom:0" onclick="SS('sg')"><i class="ti ti-arrow-left"></i> Zurück</button>
+      <button onclick="downloadQR()" style="padding:6px 14px;font-size:13px;display:flex;align-items:center;gap:6px;color:var(--color-text-success);border-color:var(--color-border-success)"><i class="ti ti-download"></i> Download</button>
+    </div>
+    <p class="sl" style="margin-top:0">START-QR-CODE</p>
+    <div class="card" style="margin-bottom:1rem;text-align:center">
+      <p style="font-size:13px;line-height:1.7;color:var(--color-text-secondary)">Spieler scannen diesen Code → direkt zur App</p>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:center;padding:2rem 1rem;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);margin-bottom:1rem">
+    <div id="qrContainer" style="background:#fff;padding:12px;border-radius:8px"></div>
+  </div>
+  <button onclick="window.print()" style="width:100%;padding:.75rem;display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px"><i class="ti ti-printer"></i> Drucken</button>
+</div>
+
+
+<script>
+// ── Speicher: localStorage (funktioniert im echten Browser) ──
+const sG=async k=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch{return null;}};
+const sS=async(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}};
+// Zentraler, versions-bewusster Config-Lader: ist die gespeicherte Config veraltet (andere DEFV),
+// werden die Stationen frisch aus DEF geladen – die Zeit-/KI-Einstellungen des Spielleiters bleiben erhalten.
+async function getCfg(){
+  const st=await sG('intime-cfg');
+  if(st&&Array.isArray(st.stations)&&st.defv===DEFV)return st;
+  const c={startMin:st?.startMin??20,penSec:st?.penSec??60,kiSec:st?.kiSec??90,stations:JSON.parse(JSON.stringify(DEF)),defv:DEFV};
+  await sS('intime-cfg',c);
+  return c;
+}
+const sk=s=>s.replace(/[^a-zA-Z0-9_.-]/g,'_');
+const es=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const SS=id=>{document.querySelectorAll('.s').forEach(s=>s.classList.remove('on'));document.getElementById(id).classList.add('on');window.scrollTo(0,0);};
+
+const TC={h:'#1D9E75',n:'#888780',z1:'#FAC775',z2:'#EF9F27',z3:'#E24B4A',z4:'#A32D2D'};
+const tC=i=>i>=9?TC.z4:i>=8?TC.z3:i>=7?TC.z2:i>=6?TC.z1:TC.n;
+
+let cfg=null,grp=null,tick=null,aC=null;
+const L1_IMG="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAEsASwDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDyeiiiv6iPywKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKpXOowRTtbIfMnVdxQDNP03S/GWtvt0nwtrV0D0KWxRfzNfKZpxhl+X1HSbc5LdR6erdl+Z62FybEYiKnok+5aorptC+C3xg1C5hM/h5dPhLjf9qugpx612Fv8APHodI7mXSQD1kW4BA544rny7jfAYubjUvTsr3laz8tOppicixFFJx970PKaK940X9nW6uB5l74otVQMVIghLHI9zxXQ2v7OPh5QPtPiLU3PcJGgH611VeMsopu3tL+if8AkZQyXGS+zb5o+ZqK+qYP2fPBEYUSXmqSkdSXAz+VWovgL8PkB3x6jJ9bkjFckuO8rW3M/l/wTZZBin2+8+TKK+tf+FEfDv8A59r/AP8AAs0f8KI+Hf8Az7ah/wCBZqf9fcs7T+5f5j/1fxXdff8A8A+SqK+rpPgD4DYHa+pJk9ps4qncfs7+EJCTDq+rQg9ANjY/OtI8dZU93Jf9u/5EvIcWu33ny7RX0bf/ALN9iUb7B4nnVsfL58AI/HFcpqP7P/iaN5V07VdNvmibawJMf867qPF2UVdq1vVNfoYTyfGQ+xf0seO0V6FrPwD+KMavNZppU67Bsjjuxu3d81xOr/Dz4raKC+oeDNTaMZ+eBvMU49K8fEcfYKjWdOMJSSdrq1n5rU7KfD9ecFJySfbUp0Vm293qEd9FZahpl7aTStsVbiBoyT6c1oRurrlTnBIP1FfQ5TxBgs1uqEveW6ej/r0POxmXV8JrUWndbDqKKK9s4QooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACvQ/gN4Ii8aeMPL1CJn0qyTzboA43Z4VM9snP5V55X2F+zz4WHhr4fW8s8e291D/AEqc45AI+RfwXB+pNfMcWZs8uwDdN2nPReXd/JfjY9TKMIsTiFzL3VqzpdE8D+DdAJfSvDWmW0rfekEALH6k1thvLjCR4RB0VRgCkmlHLMcADJPoKwYdV1S8hW4tLC1SGQkRfabkxu/vgKa/DpSc5OUnds+5SSVkbZk5xms4XojlRn8v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";
+
+// ── Alle Locations aus dem Spieldesign-Dokument – sofort spielbar ──
+const DEF=[
+ {title:"Location 1 – Teenieclub: Der Hardcore Gamer",loc:"Teenieclub",story:"Ein genialer Cyber-Hacker hat die PS5 lahmgelegt. Das Datei-System ist in 8 Fragmente zersplittert – setzt sie wieder zusammen, um an die Zugangscodes zu kommen!",desc:"📍 Teenieclub – PS5\n\n🧩 SCHIEBE-RÄTSEL\n\nBringt die Fragmente 1–8 in die richtige Reihenfolge. Tippt eine Kachel neben dem freien Feld, um sie zu verschieben.\n\nZiel: 1 2 3 / 4 5 6 / 7 8 _",hint:"",type:"slide",bonMin:6,wordCode:"",qrPin:"7291"},
+ {title:"Location 2 – Miniclub: Netzwerk-Permutation",loc:"Miniclub",story:"Vier Maskottchen wollen sich ins Kindernetzwerk einloggen – aber die KI hat ihre Passwörter (Lieblingsfarben) durcheinandergewürfelt!",desc:"📍 Miniclub\n\nOrdnet die Lieblingsfarben zu:\n🐰 Hannah Hase   🦊 Fridolin Fuchs\n🐱 Lila Luchs   🦋 Sally Schmetterling\n\nFarben: Blau, Gelb, Grün, Rot\n\nHinweise:\n• Hannah liebt Blau.\n• Sallys Farbe kommt im Alphabet DIREKT nach Grün.\n• Fridolin hat nicht Grün.\n\n",hint:"Alphabet: Blau, Gelb, Grün, Rot. ",type:"choice",bonMin:5,wordCode:"IHR",options:["Hannah=Blau, Fridolin=Gelb, Lila=Grün, Sally=Rot","Hannah=Rot, Fridolin=Blau, Lila=Gelb, Sally=Grün","Hannah=Blau, Fridolin=Grün, Lila=Rot, Sally=Gelb","Hannah=Gelb, Fridolin=Rot, Lila=Blau, Sally=Grün"],correctIdx:0,qrPin:"4538"},
+ {title:"Location 3 – Rezeption: Versteckte Tinte",loc:"Rezeption",story:"An der Rezeption hat der Hacker vier Zahlen in unsichtbarer Tinte hinterlassen..",desc:"📍 Rezeption\n\n🔦 UV-LAMPE\n\nWischen, wischen, wischen..\n\n",hint:"Nach physischer Größe sortieren",type:"uv",bonMin:7,wordCode:"HABT",code:"7395",uvSize:true,qrPin:"8156"},
+ {title:"Location 4 – Tiefgarage Go-Kart: Ampel-Hack",loc:"Tiefgarage Go-Kart",story:"Die KI hat das Ampel-System der Go-Kart-Strecke übernommen. Knackt die Schaltsequenz!",desc:"📍 Tiefgarage Go-Kart\n\n5 Ampeln schalten nacheinander auf Grün.\nFindet die richtige Reihenfolge!\n\nHinweise:\n🚦 Ampel 1 schaltet ZUERST.\n🚦 Ampel 4 schaltet ZULETZT.\n🚦 Ampel 3 schaltet DIREKT NACH Ampel 1.\n🚦 Ampel 5 schaltet DIREKT VOR Ampel 2.\n\nGebt die Reihenfolge als 5 Ziffern ein.",hint:"Ampel 1 zuerst (Pos.1), Ampel 4 zuletzt (Pos.5). 3 direkt nach 1 → Pos.2=3. 5 direkt vor 2 → Pos.3=5, Pos.4=2. Lösung: 13524",type:"code",bonMin:7,wordCode:"DIE",code:"13524",qrPin:"3624"},
+ {title:"Location 5 – Große Rutsche: Mechanischer Bypass-Würfel",loc:"Große Rutsche",story:"Die KI hat das System komplett gesperrt – die digitale Firewall blockiert alles. Um neu zu starten, müsst ihr die Infrastruktur PHYSISCH überbrücken. Im Serverraum steht ein mechanischer Sicherheitswürfel: schickt die leitfähige Metallkugel über die EINE richtige Bahn, damit sie den Hauptstromkreis schließt – den Bypass.",desc:"📍 Große Rutsche / Serverraum\n\n🧊 BYPASS-WÜRFEL\n\nDreht den Würfel (ziehen), zoomt (Pinch) und verfolgt die 4 Bahnen – auch durch die verdeckten Tunnel im Inneren.\n\nNur EINE Bahn schließt den Stromkreis. Tippt A, B, C oder D, um die Kugel loszuschicken.\n\n⚠️ Falsche Bahn: −2 Minuten Spielzeit!",hint:"Die unscheinbarste Bahn führt oft am weitesten. Verfolgt jede Bahn bis zum echten Ende – nicht nur bis sie aus dem Blickfeld verschwindet.",type:"tube",bonMin:5,wordCode:"WELT",code:"C",qrPin:"5049"},
+ {title:"Location 6 – Tiefgarage Stromhafen: Schalter-Sequenz",loc:"Tiefgarage Stromhafen",story:"Der Stromhafen versorgt den KI-Mainframe. Nur die richtige Schalterkombination öffnet die Notfall-Gänge!",desc:"📍 Tiefgarage Stromhafen\n\n6 Schalter: An (1) oder Aus (0)\n\nHinweise:\n⚡ Schalter 1 ist AN.\n⚡ Schalter 3 und Schalter 4 sind AUS.\n⚡ Schalter 2 ist das GEGENTEIL von Schalter 5.\n⚡ Schalter 2 ist AUS.\n⚡ Schalter 6 ist AN.\n\nGebt die Kombination als Ziffern ein (An=1, Aus=0).",hint:"S1=1, S2=0, S3=0, S4=?, S5=? 6=?",type:"code",bonMin:7,wordCode:"DER",code:"100011",qrPin:"9817"},
+ {title:"Location 7 – Hüpfburg Abenteuerland: Druck-Balancing",loc:"Hüpfburg Abenteuerland",story:"Die Hüpfburg ist das getarnte Kühlsystem des Mainframes. Bringt den Luftdruck ins Gleichgewicht!",desc:"📍 Hüpfburg Abenteuerland\n\n4 Luftkanäle brauchen den richtigen Druck (kPa):\n\n💨 Kanal A braucht 100 kPa.\n💨 Kanal B braucht 20 WENIGER als A.\n💨 Kanal C braucht GENAU SO VIEL wie A.\n💨 Kanal D braucht 10 MEHR als B.\n\nGebt die GESAMT-SUMME aller vier Drücke ein.",hint:"A=100, B=80, C=100, D=?. Summe: 100+80+100+? = ",type:"code",bonMin:5,wordCode:"MENSCHEN",code:"370",qrPin:"2673"},
+ {title:"Location 8 – Teenieclub: DER MAINFRAME",loc:"Teenieclub – Mainframe",
+  story:"Das Finale! Der Hauptkern der KI liegt vor euch. Drei Boss-Phasen mit Zeitlimit – haltet durch und rettet die Welt!",
+  desc:"📍 Zurück zum Teenieclub\n\n⚠️ 3 BOSS-PHASEN mit ZEITLIMIT!\nLäuft die Phasen-Zeit ab, rückt die KI weiter vor!",
+  hint:"",type:"boss",bonMin:0,wordCode:"GERETTET",
+  boss:[
+   {t:"PHASE 1: Stromkreis schließen",lim:100,mini:"pipes",d:"Leitungs-Hack: Ein großes Leitungsnetz  zum Mainframe ist völlig verdreht.\n\n Eingang ⚡ Ausgang 🔒 ",c:"",h:"Verfolgt den Weg Feld für Feld vom ⚡. Beginnt in der obersten Reihe und arbeitet euch in Schlangenlinien nach unten."},
+   {t:"PHASE 2: Zahlenschloss",lim:200,mini:"numlock",d:"🔢 ZAHLENSCHLOSS\n\nErkundet die Anlage und zählt genau:\n\n🏎️ Wie viele ELEKTRISCHE Go-Karts gibt es?\n🎮 Wie viele SOFTWARE-Spieletische?\n🚌 Wie viele ELEKTRISCHE Busse?\n\n💡 Tipp: Software-Spieletische findet ihr an drei Orten – im Abenteuerland, im Kidsclub (eure Home-Base) und an der Bar.",c:"363",h:"Software-Spieletische findet ihr an drei Orten – im Abenteuerland, im Kidsclub, in eure Home-Base und an der Bar."},
+   {t:"PHASE 3: Notabschaltung",lim:120,mini:"audio",seq:["bell","bell","horn","horn","horn","horn","knock","knock","siren","siren","siren","siren","siren"],d:"🔊 AUDIO-CODE\n\nDer Mainframe ist überhitzt und sendet ein Notsignal! \n\n\n",c:"2425",h:"Genau hinhören:  Klingel,  Hupe,  Klopfen,  Sirene → - - - -"}
+  ],qrPin:"6382"}
+];
+// Versions-Stempel: bei jeder DEF-Änderung hochzählen → App lädt Stationen automatisch neu (Zeit-Einstellungen bleiben erhalten)
+const DEFV='2026-06-23-bypass';
+const gPh=c=>c<=1?{n:1,nm:"Infrastruktur"}:c<=4?{n:2,nm:"Server-Farmen"}:{n:3,nm:"Mainframe"};
+
+// ── Audio ──
+const gA=()=>{if(!aC)aC=new(window.AudioContext||window.webkitAudioContext)();if(aC.state==='suspended')aC.resume();return aC;};
+const pT=(f,w,d,t='sine')=>{const c=gA(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=f;o.type=t;g.gain.setValueAtTime(0.22,w);g.gain.exponentialRampToValueAtTime(0.001,w+d);o.start(w);o.stop(w+d+0.05);};
+const pWarn=()=>{try{const t=gA().currentTime;[660,440,294].forEach((f,i)=>pT(f,t+i*.12,.1,'square'));}catch{}};
+const pHappy=()=>{try{const t=gA().currentTime;[523,659,784,1047,1319].forEach((f,i)=>pT(f,t+i*.07,.13,'triangle'));}catch{}};
+
+// ── Setup ──
+async function goSetup(){SS('sg');cfg=await getCfg();document.getElementById('cS').value=cfg.startMin;document.getElementById('cP').value=cfg.penSec||60;document.getElementById('cK').value=cfg.kiSec??120;rStL();rCodeWords();}
+
+function rCodeWords(){
+  const words=cfg.stations.map(s=>(s.wordCode||'').toUpperCase()).filter(Boolean);
+  const phrase=document.getElementById('cwPhrase');
+  const table=document.getElementById('cwTable');
+  if(phrase)phrase.textContent=words.length?words.join(' · '):'–';
+  if(table)table.innerHTML=cfg.stations.map((s,i)=>{
+    const w=(s.wordCode||'').toUpperCase();
+    return w?`<div style="color:var(--color-text-secondary)">Loc ${i+1}: ${s.loc||s.title||'–'}</div><div style="font-family:var(--font-mono);font-weight:700;color:var(--color-text-success);letter-spacing:2px">${w}</div>`:'';
+  }).filter(Boolean).join('');
+}
+
+function showGLPinScreen(){
+  SS('sglpin');
+  const bxs=[...document.getElementById('glPinScreen').querySelectorAll('.cbox')];
+  bxs.forEach(b=>b.value='');
+  document.getElementById('glPinScreenErr').textContent='';
+  wireGLPinScreen();
+}
+function wireGLPinScreen(){
+  const wrap=document.getElementById('glPinScreen');
+  const bxs=[...wrap.querySelectorAll('.cbox')];
+  bxs.forEach((b,i)=>{
+    b.oninput=()=>{b.value=b.value.replace(/\D/g,'').slice(-1);if(b.value&&i<3)bxs[i+1].focus();if(bxs.every(x=>x.value))chkGLPinScreen();};
+    b.onkeydown=e=>{if(e.key==='Backspace'&&!b.value&&i>0)bxs[i-1].focus();};
+  });
+  setTimeout(()=>bxs[0].focus(),120);
+}
+function chkGLPinScreen(){
+  const wrap=document.getElementById('glPinScreen');
+  const inp=[...wrap.querySelectorAll('.cbox')].map(b=>b.value).join('');
+  const err=document.getElementById('glPinScreenErr');
+  if(inp==='1991'){err.textContent='';goSetup();}
+  else{err.textContent='Falscher PIN.';[...wrap.querySelectorAll('.cbox')].forEach(b=>b.value='');wrap.querySelectorAll('.cbox')[0]?.focus();}
+}
+
+function rStL(){document.getElementById('stL').innerHTML=cfg.stations.map((s,i)=>`<div class="sedi">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <span style="font-size:12px;font-weight:500">Location ${i+1}${s.type==='boss'?' (BOSS-FINALE)':''}</span>
+    <div style="display:flex;gap:6px;align-items:center">
+      ${s.type!=='boss'?`<select onchange="chT(${i},this.value)" style="font-size:11px;padding:2px 3px">${['code','choice','slide','uv','tube'].map(t=>`<option value="${t}"${s.type===t?' selected':''}>${{code:'Code',choice:'Auswahl',slide:'Schiebe',uv:'UV-Licht',tube:'Bypass-Würfel'}[t]}</option>`).join('')}</select>`:''}
+      <button onclick="dlS(${i})" style="padding:2px 8px;font-size:12px"><i class="ti ti-trash" style="font-size:13px"></i></button>
+    </div>
+  </div>
+  <input value="${es(s.title)}" placeholder="Titel" oninput="cfg.stations[${i}].title=this.value" style="width:100%;font-size:13px;margin-bottom:5px">
+  <textarea rows="2" placeholder="Story..." oninput="cfg.stations[${i}].story=this.value" style="width:100%;font-size:12px;resize:vertical;margin-bottom:5px">${es(s.story||'')}</textarea>
+  <textarea rows="3" placeholder="Aufgabe..." oninput="cfg.stations[${i}].desc=this.value" style="width:100%;font-size:13px;resize:vertical;margin-bottom:5px">${es(s.desc||'')}</textarea>
+  ${s.type!=='boss'?`<input value="${es(s.hint||'')}" placeholder="Joker-Hinweis" oninput="cfg.stations[${i}].hint=this.value" style="width:100%;font-size:12px;margin-bottom:8px">`:''}
+  ${(s.type==='code'||s.type==='uv'||s.type==='tube')?`<div class="g2" style="margin-bottom:6px"><div><label style="font-size:11px;color:var(--color-text-secondary);display:block;margin-bottom:2px">Code</label><input value="${es(s.code||'')}" oninput="cfg.stations[${i}].code=this.value.toUpperCase();this.value=this.value.toUpperCase()" style="font-family:var(--font-mono);letter-spacing:2px;width:100%;font-size:13px"></div><div><label style="font-size:11px;color:var(--color-text-secondary);display:block;margin-bottom:2px">Bonus (Min.)</label><input type="number" value="${s.bonMin||0}" min="0" max="60" oninput="cfg.stations[${i}].bonMin=parseInt(this.value)||0" style="width:100%"></div></div>`:''}
+  ${s.type==='choice'?`<div style="margin-bottom:6px"><p style="font-size:11px;color:var(--color-text-secondary);margin-bottom:4px">Antworten (richtige markieren):</p>${(s.options||['','','','']).map((o,j)=>`<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="radio" name="cr${i}" ${(s.correctIdx||0)===j?'checked':''} onchange="cfg.stations[${i}].correctIdx=${j}" style="width:16px;min-width:16px"><input value="${es(o)}" placeholder="${['A','B','C','D'][j]}" oninput="if(!cfg.stations[${i}].options)cfg.stations[${i}].options=['','','',''];cfg.stations[${i}].options[${j}]=this.value" style="flex:1;font-size:13px"></div>`).join('')}<div style="margin-top:6px"><label style="font-size:11px;color:var(--color-text-secondary);display:block;margin-bottom:2px">Bonus (Min.)</label><input type="number" value="${s.bonMin||7}" min="0" max="60" oninput="cfg.stations[${i}].bonMin=parseInt(this.value)||0" style="width:80px"></div></div>`:''}
+  ${s.type==='boss'?(s.boss||[]).map((b,j)=>`<div style="border:0.5px solid var(--color-border-tertiary);border-radius:6px;padding:8px;margin-bottom:6px"><p style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin-bottom:4px">PHASE ${j+1} · ${b.mini==='pipes'?'Mini: Leitungen':b.mini==='audio'?'Mini: Audio':b.mini==='numlock'?'Zahlenschloss':'Code'}</p><input value="${es(b.t)}" placeholder="Phasen-Titel" oninput="cfg.stations[${i}].boss[${j}].t=this.value" style="width:100%;font-size:13px;margin-bottom:5px"><textarea rows="3" placeholder="Aufgaben-Text..." oninput="cfg.stations[${i}].boss[${j}].d=this.value" style="width:100%;font-size:12px;resize:vertical;margin-bottom:5px">${es(b.d||'')}</textarea><input value="${es(b.h||'')}" placeholder="Joker-Hinweis" oninput="cfg.stations[${i}].boss[${j}].h=this.value" style="width:100%;font-size:12px;margin-bottom:8px"><div class="g2"><div><label style="font-size:11px;color:var(--color-text-secondary);display:block;margin-bottom:2px">${(b.mini&&b.mini!=='numlock')?'Mini-Spiel':'Code'}</label>${(b.mini&&b.mini!=='numlock')?`<input value="${b.mini==='pipes'?'Leitungen drehen':b.mini==='gears'?'Zahnräder':'Audio-Signal'}" disabled style="width:100%;font-size:12px;opacity:.6">`:`<input value="${es(b.c)}" oninput="cfg.stations[${i}].boss[${j}].c=this.value.toUpperCase();this.value=this.value.toUpperCase()" style="font-family:var(--font-mono);width:100%;font-size:12px">`}</div><div><label style="font-size:11px;color:var(--color-text-secondary);display:block;margin-bottom:2px">Limit (Sek.)</label><input type="number" value="${b.lim}" min="30" max="900" oninput="cfg.stations[${i}].boss[${j}].lim=parseInt(this.value)||180" style="width:100%"></div></div></div>`).join(''):''}
+</div>`).join('');}
+
+const chT=(i,t)=>{cfg.stations[i].type=t;if(t==='choice'&&!cfg.stations[i].options)cfg.stations[i].options=['','','',''];rStL();};
+const addSt=()=>{cfg.stations.push({title:`Location ${cfg.stations.length+1}`,story:'',desc:'[Aufgabe]',hint:'',type:'code',code:'CODE',bonMin:6});rStL();setTimeout(()=>document.getElementById('stL').lastElementChild?.scrollIntoView({behavior:'smooth'}),50);};
+const dlS=i=>{if(cfg.stations.length<=1)return;cfg.stations.splice(i,1);rStL();};
+async function saveCfg(){cfg.startMin=parseInt(document.getElementById('cS').value)||15;cfg.penSec=parseInt(document.getElementById('cP').value)||60;cfg.kiSec=parseInt(document.getElementById('cK').value)||0;cfg.defv=DEFV;await sS('intime-cfg',cfg);const m=document.getElementById('cfgM');m.style.color='var(--color-text-success)';m.textContent=`✓ Gespeichert! (${cfg.stations.length} Locations, ${cfg.startMin} Min., KI-Takt ${cfg.kiSec||'aus'})`;setTimeout(()=>m.textContent='',4000);}
+async function resetCfg(){cfg={startMin:20,penSec:60,kiSec:90,stations:JSON.parse(JSON.stringify(DEF)),defv:DEFV};document.getElementById('cS').value=20;document.getElementById('cP').value=60;document.getElementById('cK').value=90;rStL();await sS('intime-cfg',cfg);const m=document.getElementById('cfgM');m.style.color='var(--color-text-success)';m.textContent='✓ Standard-Spiel wiederhergestellt!';setTimeout(()=>m.textContent='',4000);}
+
+// ── Start ──
+async function startGame(){
+  const name=(document.getElementById('jN').value||'').trim(),e=document.getElementById('jE');
+  if(!name){e.textContent='Bitte Team-Name eingeben.';return;}
+  let c=cfg;if(!c)c=await getCfg();
+  if(!c){c={startMin:20,penSec:60,kiSec:90,stations:JSON.parse(JSON.stringify(DEF)),defv:DEFV};await sS('intime-cfg',c);}
+  cfg=c;e.textContent='';
+  const gk='intime-g-'+sk(name),ex=await sG(gk);
+  if(ex&&!ex.go&&!ex.fin){grp=ex;if(!grp.jku)grp.jku=[];if(grp.th===undefined)grp.th=5;if(grp.bp===undefined)grp.bp=0;}
+  else{grp={name,startSec:cfg.startMin*60,startTs:Date.now(),bonus:0,cur:0,fin:false,go:false,finTime:null,jku:[],th:5,bp:0,bpStart:0,bkp:false,ph1:false,lastKi:Date.now()};await sS(gk,grp);let gs=(await sG('intime-gs'))||[];if(!gs.includes(name)){gs.push(name);await sS('intime-gs',gs);}}
+  SS('sga');initGame();
+}
+
+const gR=()=>!grp?0:Math.max(0,grp.startSec+grp.bonus-(Date.now()-grp.startTs)/1000);
+const fm=s=>{s=Math.max(0,Math.round(s));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');};
+const fb=(pos,txt)=>{const el=document.getElementById('tFb');if(!el)return;el.className='tfb '+(pos?'gn':'rd');el.textContent=txt;el.classList.add('on');setTimeout(()=>el.classList.remove('on'),2500);};
+
+function initGame(){
+  document.getElementById('gN').textContent=grp.name;
+  if(grp.fin){document.getElementById('vN').textContent=grp.name;document.getElementById('vT').textContent=fm(grp.finTime||0);SS('svic');return;}
+  if(grp.go){document.getElementById('goN').textContent=grp.name;document.getElementById('goSt').textContent=`${grp.cur}/${cfg.stations.length}`;SS('sgo');return;}
+  if(!grp.lastKi)grp.lastKi=Date.now();
+  rDots();rSt();rPB();if(tick)clearInterval(tick);tick=setInterval(tickT,500);
+}
+
+const rPB=()=>{const pb=document.getElementById('pBar');if(!pb)return;pb.innerHTML=cfg.stations.map((_,i)=>`<div class="ps${i<grp.cur?' d':i===grp.cur?' c':''}"></div>`).join('');const p=gPh(grp.cur),b=document.getElementById('phB');if(b)b.textContent=`Phase ${p.n}: ${p.nm}`;};
+const rDots=()=>{document.getElementById('gD').innerHTML=cfg.stations.map((_,i)=>`<div class="dot${i<grp.cur?' d':i===grp.cur?' c':''}" title="Location ${i+1}"></div>`).join('');};
+
+function rTh(){
+  const pos=Math.min(10,Math.max(0,Math.round(grp.th||5))),bar=document.getElementById('thBar');if(!bar)return;
+  bar.innerHTML=Array.from({length:10},(_,i)=>`<div class="tseg" style="background:${i<pos?TC.h:tC(i)};${i===pos?'outline:2px solid var(--color-border-primary);outline-offset:-1px;':''}"></div>`).join('');
+  const za=document.getElementById('zA');
+  const z=pos>=9?['za3','🚨 ZONE 4: Nuklearer Pre-Launch! Explosion unmittelbar!']:pos>=8?['za3','⚠️ ZONE 3: Automatisierte Rüstung! Joker gesperrt!']:pos>=7?['za2','⚡ ZONE 2: Drohnen-Patrouille! Strafe ×2!']:pos>=6?['za1','📡 ZONE 1: Smart-Home-Meuterei! Nicht absprechen!']:null;
+  if(z){za.className='za '+z[0];za.textContent=z[1];za.style.display='block';}else za.style.display='none';
+  const bi=document.getElementById('bkpInfo');if(bi)bi.style.display=grp.bkp?'block':'none';
+}
+
+function rSt(){
+  const s=cfg.stations[grp.cur];if(!s)return;
+  document.getElementById('stB').textContent=`Location ${grp.cur+1}/${cfg.stations.length}`;
+  document.getElementById('stBon').textContent=s.bonMin>0?`+${s.bonMin} Min.`:'';
+  document.getElementById('stT').textContent=s.title;
+  const se=document.getElementById('stSt');se.textContent=s.story||'';se.style.display=s.story?'block':'none';
+  document.getElementById('stD').textContent=s.desc||'';
+  rInp();uJk();rTh();
+}
+
+function tickT(){
+  const r=gR(),el=document.getElementById('tD'),box=document.getElementById('tBox');
+  el.textContent=fm(r);el.className='tnum';
+  if(r<180){el.classList.add('d');box.classList.add('cr');}else if(r<300){el.classList.add('w');box.classList.remove('cr');}else box.classList.remove('cr');
+  if(r<=0&&grp&&!grp.go){doGO('ZEIT ABGELAUFEN','Lebenszeit aufgebraucht.');return;}
+  if(cfg.kiSec>0&&grp&&!grp.go&&!grp.fin){
+    const interval=cfg.kiSec*(grp.ph1?1.5:1)*1000;
+    if(Date.now()-(grp.lastKi||Date.now())>=interval){grp.lastKi=Date.now();kiAdvance('Die KI rückt vor!');}
+  }
+  const s=cfg.stations[grp.cur];
+  if(s?.type==='boss'&&grp.bpStart>0){
+    const b=s.boss[grp.bp];
+    const rem=Math.max(0,b.lim-(Date.now()-grp.bpStart)/1000);
+    const bt=document.getElementById('bossT');if(bt)bt.textContent=fm(rem);
+    if(rem<=0){grp.bpStart=Date.now();kiAdvance('Phasen-Zeit abgelaufen!');}
+  }
+}
+
+async function kiAdvance(msg){
+  grp.th=Math.min(10,(grp.th||5)+1);
+  pWarn();fb(false,`${msg} KI +1`);rTh();
+  if(grp.th>=10){
+    if(grp.bkp){grp.bkp=false;grp.th=8;fb(true,'🔋 BACKUP-SYSTEM! Explosion abgewendet!');pHappy();rTh();await sS('intime-g-'+sk(grp.name),grp);return;}
+    await sS('intime-g-'+sk(grp.name),grp);doGO('KI-EXPLOSION','Die Bedrohungs-Leiste hat das Ende erreicht!');return;
+  }
+  await sS('intime-g-'+sk(grp.name),grp);
+}
+
+// ── Eingabe-Felder pro Zeichen ──
+function boxes(len,numeric){
+  let h='<div class="boxwrap" id="boxWrap">';
+  for(let i=0;i<len;i++) h+=`<input class="cbox" maxlength="1" data-i="${i}" inputmode="${numeric?'numeric':'text'}" autocomplete="off" autocorrect="off" autocapitalize="characters">`;
+  return h+'</div>';
+}
+function wireBoxes(onEnter){
+  const wrap=document.getElementById('boxWrap');if(!wrap)return;
+  const bx=[...wrap.querySelectorAll('.cbox')];
+  bx.forEach((b,i)=>{
+    b.addEventListener('input',()=>{b.value=b.value.toUpperCase();if(b.value&&i<bx.length-1)bx[i+1].focus();});
+    b.addEventListener('keydown',e=>{
+      if(e.key==='Backspace'&&!b.value&&i>0){bx[i-1].focus();bx[i-1].value='';e.preventDefault();}
+      else if(e.key==='Enter')onEnter();
+    });
+    b.addEventListener('focus',()=>b.select());
+  });
+}
+const readBoxes=()=>{const w=document.getElementById('boxWrap');return w?[...w.querySelectorAll('.cbox')].map(b=>b.value).join('').toUpperCase():'';};
+const numCode=c=>/^[0-9]+$/.test(c||'');
+
+// ── Schiebe-Rätsel (3x3) ──
+let slTiles=null,slCb=null;
+function renderSlide(cont,onSolve){
+  slCb=onSolve;slTiles=[1,2,3,4,5,6,7,8,0];let e=8;
+  const nbs=idx=>{const r=Math.floor(idx/3),c=idx%3,n=[];if(r>0)n.push(idx-3);if(r<2)n.push(idx+3);if(c>0)n.push(idx-1);if(c<2)n.push(idx+1);return n;};
+  // 500 Züge statt 100 – der Random Walk soll weit genug vom Ziel weg sein
+  for(let i=0;i<500;i++){const n=nbs(e),p=n[Math.floor(Math.random()*n.length)];slTiles[e]=slTiles[p];slTiles[p]=0;e=p;}
+  // Mindest-Schwierigkeit: mind. 6 Kacheln müssen falsch liegen
+  const wrongCount=()=>{let c=0;for(let i=0;i<8;i++)if(slTiles[i]!==i+1)c++;return c;};
+  if(slSolved()||wrongCount()<6)return renderSlide(cont,onSolve);
+  drawSlide(cont);
+}
+const slSolved=()=>{for(let i=0;i<8;i++)if(slTiles[i]!==i+1)return false;return slTiles[8]===0;};
+function drawSlide(cont){
+  cont.innerHTML=`<p style="text-align:center;font-size:11px;color:var(--color-text-secondary);margin-bottom:6px">Ziel-Bild:</p>
+  <img src="${L1_IMG}" alt="Ziel" style="display:block;width:54px;height:54px;object-fit:cover;border-radius:6px;margin:0 auto 14px;border:1px solid var(--color-border-tertiary);filter:blur(0.5px)">
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;max-width:264px;margin:0 auto">`+
+    slTiles.map((v,i)=>{
+      if(v===0)return `<div style="aspect-ratio:1;border-radius:6px;background:transparent"></div>`;
+      const r=Math.floor((v-1)/3),c=(v-1)%3;
+      return `<button onclick="slTap(${i})" style="position:relative;aspect-ratio:1;border-radius:6px;border:1px solid var(--color-border-secondary);background-image:url('${L1_IMG}');background-size:300% 300%;background-position:${c*50}% ${r*50}%;padding:0;overflow:hidden"><span style="position:absolute;left:3px;top:1px;font-size:10px;font-family:var(--font-mono);color:#fff;text-shadow:0 0 3px #000,0 0 3px #000;opacity:.20">${v}</span></button>`;
+    }).join('')+`</div>`;
+}
+function slTap(i){
+  const e=slTiles.indexOf(0),r=Math.floor(i/3),c=i%3,er=Math.floor(e/3),ec=e%3;
+  if((r===er&&Math.abs(c-ec)===1)||(c===ec&&Math.abs(r-er)===1)){
+    slTiles[e]=slTiles[i];slTiles[i]=0;drawSlide(document.getElementById('puz'));
+    if(slSolved()){const cb=slCb;slCb=null;cb&&cb();}
+  }
+}
+
+// ── Leitungen drehen (Stromkreis, 4x3 mit Ecken) ──
+let pipeCells=null,pCb=null;
+const P_COLS=4,P_ROWS=3,P_LAST=P_COLS*P_ROWS-1;
+// Lösungs-Öffnungen je Feld (N=0 E=1 S=2 W=3) – langer Schlangenpfad 0→1→2→3→7→6→5→4→8→9→10→11
+const P_BASE=[[3,1],[3,1],[3,1],[3,2],[1,2],[1,3],[1,3],[0,3],[0,1],[3,1],[3,1],[3,1]];
+function renderPipes(cont,onSolve){
+  pCb=onSolve;
+  pipeCells=P_BASE.map(b=>({base:b.slice(),rot:1+Math.floor(Math.random()*3)}));
+  let g=0;while(pOK()&&g<30){pipeCells.forEach(c=>c.rot=1+Math.floor(Math.random()*3));g++;}
+  drawPipes(cont);
+}
+const pipeOpens=i=>pipeCells[i].base.map(d=>(d+pipeCells[i].rot)%4);
+function pipePowered(){
+  const has=(i,d)=>pipeOpens(i).includes(d),pw=new Set(),st=[];
+  if(has(0,3)){pw.add(0);st.push(0);}
+  while(st.length){const i=st.pop(),r=Math.floor(i/P_COLS),col=i%P_COLS;
+    for(const d of pipeOpens(i)){let nr=r,nc=col;if(d===0)nr--;else if(d===1)nc++;else if(d===2)nr++;else nc--;
+      if(nr<0||nr>=P_ROWS||nc<0||nc>=P_COLS)continue;const ni=nr*P_COLS+nc;if(pw.has(ni))continue;
+      if(has(ni,(d+2)%4)){pw.add(ni);st.push(ni);}}}
+  return pw;
+}
+function pOK(){if(!pipeCells)return false;const pw=pipePowered();return pw.has(P_LAST)&&pipeOpens(P_LAST).includes(1);}
+function pipeSVG(opens,on){
+  const col=on?'#1D9E75':'#7a7e87';
+  const L={0:'M30 30 L30 4',1:'M30 30 L56 30',2:'M30 30 L30 56',3:'M30 30 L4 30'};
+  let seg='';opens.forEach(d=>{seg+=`<path d="${L[d]}" stroke="${col}" stroke-width="6" stroke-linecap="round" fill="none"/>`;});
+  return `<svg viewBox="0 0 60 60" style="width:100%;height:100%;display:block">${seg}<circle cx="30" cy="30" r="5" fill="${col}"/></svg>`;
+}
+function drawPipes(cont){
+  const pw=pipePowered(),lit=pOK();
+  const cells=pipeCells.map((c,i)=>{
+    const on=pw.has(i);
+    const badge=i===0?'<span style="position:absolute;left:1px;top:0;font-size:11px">⚡</span>':i===P_LAST?`<span style="position:absolute;right:1px;bottom:0;font-size:11px">${lit?'🔓':'🔒'}</span>`:'';
+    return `<button onclick="pTap(${i})" style="position:relative;aspect-ratio:1;border-radius:7px;background:var(--color-background-secondary);border:1px solid ${on?'#1d6b50':'var(--color-border-secondary)'};padding:2px">${pipeSVG(pipeOpens(i),on)}${badge}</button>`;
+  }).join('');
+  cont.innerHTML=`<p style="text-align:center;font-size:12px;color:var(--color-text-secondary);margin-bottom:8px">Verbindet ⚡ (oben links) mit 🔒 (unten rechts) – dreht alle Leitungen passend.</p><div style="display:grid;grid-template-columns:repeat(${P_COLS},1fr);gap:5px;max-width:300px;margin:0 auto">${cells}</div><p style="text-align:center;font-size:12px;color:${lit?'var(--color-text-success)':'var(--color-text-secondary)'};margin-top:10px">${lit?'✅ Stromkreis geschlossen!':'Tippt eine Leitung, um sie zu drehen.'}</p>`;
+}
+function pTap(i){pipeCells[i].rot=(pipeCells[i].rot+1)%4;drawPipes(document.getElementById('puz'));if(pOK()){const cb=pCb;pCb=null;setTimeout(()=>cb&&cb(),450);}}
+
+// ── Zahnräder (Maschine starten) ──
+let gAvail=null,gPlaced=null,gCb=null;
+const G_TARGET=[8,12,20,32];
+function renderGears(cont,onSolve){
+  gCb=onSolve;gPlaced=[];gAvail=[...G_TARGET].sort(()=>Math.random()-0.5);
+  if(gAvail.every((v,i)=>v===G_TARGET[i]))gAvail.reverse();
+  drawGears(cont);
+}
+const gIcon=t=>{const sz=14+t/2;return `<span style="display:inline-flex;flex-direction:column;align-items:center;gap:2px"><i class="ti ti-settings-filled" style="font-size:${sz}px;color:var(--color-text-warning)"></i><span style="font-size:10px;font-family:var(--font-mono)">${t}</span></span>`;};
+function drawGears(cont){
+  const slots=G_TARGET.map((_,i)=>`<div style="width:58px;height:62px;border-radius:10px;border:1px dashed var(--color-border-secondary);display:flex;align-items:center;justify-content:center;background:var(--color-background-secondary)">${gPlaced[i]?gIcon(gPlaced[i]):`<span style="color:var(--color-text-secondary);font-size:12px">${i+1}.</span>`}</div>`).join('<i class="ti ti-arrow-right" style="color:var(--color-text-secondary);align-self:center;font-size:14px"></i>');
+  const avail=gAvail.map(v=>{const u=gPlaced.includes(v);return `<button ${u?'disabled':''} onclick="gPlace(${v})" style="padding:8px 10px;border-radius:10px;background:var(--color-background-secondary);border:1px solid var(--color-border-secondary);opacity:${u?0.25:1}">${gIcon(v)}</button>`;}).join('');
+  cont.innerHTML=`<p style="text-align:center;font-size:12px;color:var(--color-text-secondary);margin-bottom:10px">Zahnräder von KLEIN nach GROSS einsetzen:</p><div style="display:flex;justify-content:center;gap:3px;margin-bottom:14px">${slots}</div><div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap">${avail}</div><button onclick="gReset()" style="width:100%;margin-top:12px;padding:.55rem;font-size:12px"><i class="ti ti-refresh"></i> Zurücksetzen</button>`;
+}
+function gPlace(v){if(gPlaced.includes(v))return;gPlaced.push(v);drawGears(document.getElementById('puz'));
+  if(gPlaced.length===G_TARGET.length){
+    if(gPlaced.every((x,i)=>x===G_TARGET[i])){const cb=gCb;gCb=null;pHappy();setTimeout(()=>cb&&cb(),500);}
+    else{fb(false,'⚙️ Falsche Reihenfolge – nochmal!');setTimeout(()=>{gPlaced=[];drawGears(document.getElementById('puz'));},800);}
+  }
+}
+function gReset(){gPlaced=[];drawGears(document.getElementById('puz'));}
+
+// ── Audio-Signal abspielen (3 Geräusche: Klingel/Hupe/Klopfen, nacheinander) ──
+function pNoise(t,d){try{const ctx=gA();const n=Math.floor(ctx.sampleRate*d),buf=ctx.createBuffer(1,n,ctx.sampleRate),da=buf.getChannelData(0);for(let i=0;i<n;i++)da[i]=(Math.random()*2-1)*Math.pow(1-i/n,2);const src=ctx.createBufferSource(),g=ctx.createGain();src.buffer=buf;src.connect(g);g.connect(ctx.destination);g.gain.setValueAtTime(0.45,t);src.start(t);src.stop(t+d+0.02);}catch{}}
+function pSiren(t,d){try{const ctx=gA();const o=ctx.createOscillator(),g=ctx.createGain();o.type='sawtooth';o.connect(g);g.connect(ctx.destination);o.frequency.setValueAtTime(600,t);o.frequency.linearRampToValueAtTime(1150,t+d/2);o.frequency.linearRampToValueAtTime(600,t+d);g.gain.setValueAtTime(0.16,t);g.gain.setValueAtTime(0.16,t+d-0.05);g.gain.exponentialRampToValueAtTime(0.001,t+d);o.start(t);o.stop(t+d+0.03);}catch{}}
+function playSignal3(seq){
+  try{const ctx=gA();let t=ctx.currentTime+0.2;let prev=null;
+    seq.forEach(k=>{
+      if(prev&&prev!==k)t+=0.35; // größere Pause zwischen den Geräusch-Gruppen
+      if(k==='bell'){pT(1318,t,0.18,'sine');pT(1976,t,0.10,'sine');t+=0.45;}
+      else if(k==='horn'){pT(392,t,0.42,'square');pT(294,t,0.42,'square');t+=0.62;}
+      else if(k==='knock'){pNoise(t,0.09);pT(120,t,0.09,'sine');t+=0.4;}
+      else if(k==='siren'){pSiren(t,0.5);t+=0.62;}
+      prev=k;
+    });
+  }catch{}
+}
+function playAudioPhase(){const b=cfg.stations[grp.cur].boss[grp.bp];playSignal3(b.seq||[]);}
+
+// ── UV-Licht-Rätsel (versteckte Tinte) ──
+function renderUV(c){
+  const s=cfg.stations[grp.cur],code=s.code||'';
+  c.innerHTML=`<div class="card" style="padding:12px">
+    <p style="font-size:12px;color:var(--color-text-secondary);text-align:center;margin-bottom:10px">🔦 Wischt mit dem Finger über die Fläche, um die geheime Tinte sichtbar zu machen.</p>
+    <div id="uvwrap" style="position:relative;width:100%;height:185px;border-radius:10px;overflow:hidden;border:1px solid var(--color-border-tertiary);touch-action:none;cursor:crosshair">
+      <div id="uvbase" style="position:absolute;inset:0;background:#0c0f14"></div>
+      <div id="uvover" style="position:absolute;inset:0;background:#171b23"></div>
+    </div>
+    ${s.uvSize?'<p style="font-size:12px;color:var(--color-text-warning);text-align:center;margin-top:10px">💡 Kleinste Zahl zuerst, größte zuletzt</p>':''}
+    <label style="font-size:12px;color:var(--color-text-secondary);display:block;margin:12px 0 8px;text-align:center">Code eingeben (${code.length} Zeichen)</label>
+    ${boxes(code.length,numCode(code))}
+    <p id="cE" class="em" style="text-align:center"></p>
+  </div>
+  <button onclick="chkCode()" style="width:100%;padding:1rem;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px"><i class="ti ti-check"></i> Bestätigen</button>`;
+  const base=document.getElementById('uvbase');
+  let html='';
+  const ch=code.split('');
+  if(s.uvSize){
+    // jede Ziffer in aufsteigender Größe; Positionen zufällig auf Spalten-Slots verteilt
+    const n=ch.length;
+    const sizes=ch.map((_,i)=>28+i*16); // 28,44,60,76 ...
+    const slots=Array.from({length:n},(_,k)=>(k+0.5)/n*100); // gleichmäßige x-Spalten
+    const perm=slots.map((_,i)=>i).sort(()=>Math.random()-0.5);
+    ch.forEach((d,i)=>{
+      const x=slots[perm[i]]+(Math.random()*8-4);
+      const y=32+Math.random()*36; // vertikaler Jitter 32-68%
+      html+=`<span style="position:absolute;left:${x}%;top:${y}%;transform:translate(-50%,-50%);font-family:var(--font-mono);font-size:${sizes[i]}px;font-weight:700;line-height:1;color:#9be8c1;text-shadow:0 0 7px #2fffa0,0 0 15px #1d9e75">${d}</span>`;
+    });
+  }else{
+    const xs=[24,50,76];
+    ch.forEach((d,k)=>{html+=`<span style="position:absolute;left:${xs[k]||(20+k*22)}%;top:46%;transform:translate(-50%,-50%);font-family:var(--font-mono);font-size:48px;font-weight:700;color:#9be8c1;text-shadow:0 0 7px #2fffa0,0 0 15px #1d9e75">${d}</span>`;});
+  }
+  for(let i=0;i<16;i++){const x=Math.random()*92+2,y=Math.random()*78+8,r=6+Math.random()*18;html+=`<span style="position:absolute;left:${x}%;top:${y}%;width:${r}px;height:${r}px;border-radius:50%;background:rgba(130,190,255,.10)"></span>`;}
+  base.innerHTML=html;
+  wireBoxes(chkCode);
+  initUV();
+}
+function initUV(){
+  const wrap=document.getElementById('uvwrap'),over=document.getElementById('uvover');if(!wrap||!over)return;
+  const hole=(x,y)=>{const g=`radial-gradient(circle 58px at ${x}px ${y}px, transparent 0, transparent 36px, #000 62px)`;over.style.webkitMaskImage=g;over.style.maskImage=g;};
+  const off=()=>{over.style.webkitMaskImage='none';over.style.maskImage='none';};
+  off();
+  const mv=(cx,cy)=>{const r=wrap.getBoundingClientRect();hole(cx-r.left,cy-r.top);};
+  wrap.addEventListener('mousemove',e=>mv(e.clientX,e.clientY));
+  wrap.addEventListener('mouseleave',off);
+  wrap.addEventListener('touchstart',e=>{const t=e.touches[0];mv(t.clientX,t.clientY);},{passive:true});
+  wrap.addEventListener('touchmove',e=>{e.preventDefault();const t=e.touches[0];mv(t.clientX,t.clientY);},{passive:false});
+  wrap.addEventListener('touchend',off);
+}
+
+// ── Zahlenschloss-Design (Boss Phase 2) ──
+function renderNumlock(b){
+  const rows=[['🏎️','Elektrische Go-Karts'],['🎮','Software-Spieletische'],['🚌','Elektrische Busse']];
+  return `<div class="card">
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:14px"><i class="ti ti-lock" style="font-size:22px;color:var(--color-text-warning)"></i><span style="font-size:12px;font-weight:500;letter-spacing:2px;color:var(--color-text-secondary)">ZAHLENSCHLOSS</span></div>
+    <div style="display:flex;flex-direction:column;gap:9px">
+      ${rows.map((q,j)=>`<div style="display:flex;align-items:center;gap:12px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:10px;padding:9px 12px"><span style="font-size:22px;width:26px;text-align:center">${q[0]}</span><span style="flex:1;font-size:13px">${q[1]}</span><input id="nl${j}" class="cbox" maxlength="1" inputmode="numeric" autocomplete="off" style="width:42px;height:48px"></div>`).join('')}
+    </div>
+    <p id="cE" class="em" style="text-align:center;margin-top:10px"></p>
+  </div>
+  <button onclick="chkNumlock()" style="width:100%;padding:1rem;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px"><i class="ti ti-lock-open"></i> Schloss öffnen</button>`;
+}
+function wireNumlock(){
+  const ids=['nl0','nl1','nl2'];
+  ids.forEach((id,k)=>{const el=document.getElementById(id);if(!el)return;
+    el.addEventListener('input',()=>{el.value=el.value.replace(/[^0-9]/g,'');if(el.value&&k<2)document.getElementById(ids[k+1]).focus();});
+    el.addEventListener('keydown',e=>{if(e.key==='Backspace'&&!el.value&&k>0)document.getElementById(ids[k-1]).focus();else if(e.key==='Enter')chkNumlock();});
+    el.addEventListener('focus',()=>el.select());
+  });
+}
+async function chkNumlock(){
+  const s=cfg.stations[grp.cur],b=s.boss[grp.bp],err=document.getElementById('cE');
+  const v=(document.getElementById('nl0').value||'')+(document.getElementById('nl1').value||'')+(document.getElementById('nl2').value||'');
+  if(v.length<3){if(err)err.textContent='Bitte alle drei Zahlen eingeben.';return;}
+  if(v!==(b.c||'')){const d=(grp.th||5)>=7;if(err)err.textContent=`Falsch!${d?' (×2)':''}`;await pen(d);return;}
+  if(err)err.textContent='';await bossWin();
+}
+
+// ── 3D Bypass-Würfel (Three.js) ──
+let T3=null;
+function tubeDispose(){
+  if(!T3)return;
+  try{cancelAnimationFrame(T3.raf);}catch{}
+  try{window.removeEventListener('resize',T3.onResize);}catch{}
+  try{window.removeEventListener('mousemove',T3.winMove);window.removeEventListener('mouseup',T3.winUp);}catch{}
+  try{T3.renderer.dispose();if(T3.renderer.forceContextLoss)T3.renderer.forceContextLoss();}catch{}
+  try{const e=T3.renderer.domElement;if(e&&e.parentNode)e.parentNode.removeChild(e);}catch{}
+  T3=null;
+}
+// Bahn-Definitionen (lokale Würfel-Koordinaten). C = Erfolgsweg.
+function tubePaths(){
+  const V=(x,y,z)=>new THREE.Vector3(x,y,z);
+  return {
+    // A – Täuschung: Langer Zickzack durch die Würfelmitte – nähert sich dem Ziel, dreht aber ab in eine Sackgasse
+    A:{color:0xb8762e,pts:[
+      V(-.78,1.35,-.50), V(-.56,1.02,-.24), V(-.30,.68,.12),
+      V(.04,.36,.36),    V(.28,.10,.18),     V(.36,-.14,-.20),
+      V(.22,-.38,-.52),  V(-.04,-.56,-.68),  V(-.34,-.62,-.58),
+      V(-.58,-.68,-.32), V(-.70,-.72,-.02),  V(-.60,-.74,.28),
+      V(-.36,-.78,.46),  V(-.10,-.80,.36)
+    ],end:'dead'},
+    // B – Endlosschleife: Elegant wirkende Spirale die in sich zurückläuft
+    B:{color:0xb8762e,pts:[
+      V(-.28,1.35,.62),  V(-.46,1.00,.44),  V(-.70,.62,.14),
+      V(-.86,.22,-.18),  V(-.74,-.12,-.46), V(-.40,-.32,-.62),
+      V(.02,-.30,-.50),  V(.30,-.16,-.16),  V(.38,.04,.22),
+      V(.26,.16,.54),    V(.00,.12,.70),    V(-.32,.00,.58),
+      V(-.56,-.16,.26),  V(-.62,-.36,-.08), V(-.50,-.54,-.34),
+      V(-.28,-.60,-.50)
+    ],end:'loop'},
+    // C – Erfolgsweg: Unscheinbarer Schlangenweg durch die Innentunnel zum Bypass-Anschluss
+    C:{color:0xc89a5a,pts:[
+      V(.32,1.35,-.18),  V(.24,.96,.10),   V(.02,.62,.34),
+      V(-.20,.30,.10),   V(-.10,-.04,-.24), V(.12,-.28,.08),
+      V(.30,-.52,.44),   V(.16,-.74,.74),   V(.00,-1.02,.92)
+    ],end:'goal'},
+    // D – Sturz: Wirkt wie ein direkter Fall, driftet aber seitlich aus dem Würfel
+    D:{color:0xb8762e,pts:[
+      V(.80,1.35,.50),   V(.78,1.00,.28),  V(.70,.62,-.06),
+      V(.80,.20,-.36),   V(.96,-.12,-.54), V(1.14,-.40,-.60),
+      V(1.30,-.58,-.46)
+    ],end:'fall'}
+  };
+}
+function renderTube(c){
+  tubeDispose();
+  if(typeof THREE==='undefined'){
+    c.innerHTML=`<div class="card" style="text-align:center;padding:1.4rem"><p style="color:var(--color-text-warning);font-size:14px;line-height:1.7"><b>3D-Engine nicht geladen.</b><br>Der Bypass-Würfel braucht eine Internetverbindung.<br>Bitte Seite einmal neu laden.</p></div>`;
+    return;
+  }
+  c.innerHTML=`
+    <div class="card" style="padding:10px">
+      <p style="font-size:12px;color:var(--color-text-secondary);text-align:center;margin-bottom:8px">🧊 <b>Mechanischer Bypass-Würfel</b><br><span style="font-size:11px">Ziehen = drehen · Pinch/Scroll = zoomen</span></p>
+      <div id="t3wrap" style="position:relative;width:100%;aspect-ratio:1/1;max-height:58vh;border-radius:12px;overflow:hidden;background:#0a0d12;touch-action:none;cursor:grab">
+        <div id="t3flash" style="position:absolute;inset:0;background:#ff2b2b;opacity:0;pointer-events:none;transition:opacity .12s;z-index:3"></div>
+        <button id="t3reset" onclick="tubeResetView()" title="Ansicht zurücksetzen" style="position:absolute;top:8px;right:8px;z-index:4;width:34px;height:34px;padding:0;font-size:16px;border-radius:8px;line-height:1;opacity:.85">⟲</button>
+      </div>
+      <div id="t3crt" class="t3-crt">&gt; SICHERHEITSWÜRFEL ONLINE_<br>&gt; WARTE AUF BYPASS-PFAD ...</div>
+    </div>
+    <p style="font-size:11px;color:var(--color-text-secondary);text-align:center;margin:9px 0 6px">Welche Bahn schließt den Stromkreis? Kugel losschicken:</p>
+    <div style="display:flex;gap:6px;margin-bottom:6px">
+      ${['A','B','C','D'].map(l=>`<button class="t3-pbtn" id="t3b${l}" onclick="launchBall('${l}')">${l}</button>`).join('')}
+    </div>
+    <p id="cE" class="em" style="text-align:center"></p>`;
+  const wrap=document.getElementById('t3wrap');
+  buildCube(wrap);
+}
+function buildCube(wrap){
+  const dim=()=>Math.max(220,Math.min(wrap.clientWidth,wrap.clientHeight||wrap.clientWidth,520));
+  const sz=dim();
+  const scene=new THREE.Scene();scene.background=new THREE.Color(0x0a0d12);scene.fog=new THREE.Fog(0x0a0d12,6,12);
+  const cam=new THREE.PerspectiveCamera(42,1,0.1,100);cam.position.set(0,0.9,5.4);cam.lookAt(0,0,0);
+  const rnd=new THREE.WebGLRenderer({antialias:true});
+  rnd.setPixelRatio(Math.min(2,window.devicePixelRatio||1));rnd.setSize(sz,sz);
+  wrap.appendChild(rnd.domElement);
+  scene.add(new THREE.AmbientLight(0xffffff,0.55));
+  const d1=new THREE.DirectionalLight(0xfff0dd,1.0);d1.position.set(4,7,6);scene.add(d1);
+  const d2=new THREE.DirectionalLight(0x88bbff,0.4);d2.position.set(-5,2,-4);scene.add(d2);
+  const pl=new THREE.PointLight(0xffffff,0.5,20);pl.position.set(0,1.5,3);scene.add(pl);
+  const pivot=new THREE.Group();pivot.rotation.set(0.32,-0.5,0);scene.add(pivot);
+  // Außenrahmen (Kanten + leicht durchscheinende Hülle)
+  const cubeSz=2.9;
+  const hull=new THREE.Mesh(new THREE.BoxGeometry(cubeSz,cubeSz,cubeSz),new THREE.MeshStandardMaterial({color:0x10202c,transparent:true,opacity:0.06,roughness:1,depthWrite:false}));
+  pivot.add(hull);
+  const edges=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(cubeSz,cubeSz,cubeSz)),new THREE.LineBasicMaterial({color:0x6f87a3,transparent:true,opacity:.55}));
+  pivot.add(edges);
+  // Modulare Holzblöcke (durchscheinend → verdecken Tunnel teilweise, "Innensicht")
+  const woodMat=()=>new THREE.MeshStandardMaterial({color:0xb07b3f,roughness:.82,metalness:.02,transparent:true,opacity:.5,depthWrite:false});
+  const blocks=[[1.4,1.0,1.3,-.45,.55,-.1],[1.2,1.3,1.1,.55,-.2,.35],[1.0,1.1,1.0,-.2,-.55,-.5],[1.3,.9,1.2,.35,.6,.55],[1.1,1.2,.9,-.6,-.1,.5],[1.0,.8,1.1,.10,.35,-.35],[1.2,1.0,.9,-.30,-.25,.35]];
+  blocks.forEach(b=>{const m=new THREE.Mesh(new THREE.BoxGeometry(b[0],b[1],b[2]),woodMat());m.position.set(b[3],b[4],b[5]);const e=new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry),new THREE.LineBasicMaterial({color:0x6b4a23,transparent:true,opacity:.4}));m.add(e);pivot.add(m);});
+  // Bahnen als Röhren
+  const P=tubePaths();const curves={};
+  Object.keys(P).forEach(k=>{
+    const cv=new THREE.CatmullRomCurve3(P[k].pts,false,'catmullrom',0.5);curves[k]=cv;
+    const tube=new THREE.Mesh(new THREE.TubeGeometry(cv,90,0.075,12,false),new THREE.MeshStandardMaterial({color:P[k].color,roughness:.4,metalness:.25}));
+    pivot.add(tube);
+    // Start-Knopf oben + Buchstabe
+    const s0=P[k].pts[0];
+    const cap=new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.17,0.1,20),new THREE.MeshStandardMaterial({color:0x2a2f3a,roughness:.6,metalness:.4}));
+    cap.position.set(s0.x,s0.y+0.05,s0.z);pivot.add(cap);
+    const lab=makeLabel(k);lab.position.set(s0.x,s0.y+0.28,s0.z);lab.scale.set(.5,.5,.5);pivot.add(lab);
+  });
+  // Bypass-Buchse (Ziel) am Ende von C
+  const gEnd=P.C.pts[P.C.pts.length-1];
+  const goal=new THREE.Mesh(new THREE.TorusGeometry(0.18,0.05,12,24),new THREE.MeshStandardMaterial({color:0x1c6b3a,emissive:0x0c3a1e,emissiveIntensity:.6,roughness:.4}));
+  goal.position.copy(gEnd);goal.lookAt(gEnd.x,gEnd.y-1,gEnd.z);pivot.add(goal);
+  // Metallkugel
+  const ball=new THREE.Mesh(new THREE.SphereGeometry(0.12,24,24),new THREE.MeshStandardMaterial({color:0xe6eaf0,metalness:.95,roughness:.12,emissive:0x222a33,emissiveIntensity:.25}));
+  ball.visible=false;pivot.add(ball);
+
+  T3={scene,cam,rnd,pivot,curves,goal,ball,P,wrap,running:false,anim:null,auto:true,raf:0,base:{x:0.32,y:-0.5}};
+  // Interaktion
+  let drag=false,px=0,py=0,pinch=0;
+  const dom=rnd.domElement;
+  const down=e=>{drag=true;T3.auto=false;wrap.style.cursor='grabbing';const t=pt(e);px=t.x;py=t.y;};
+  const move=e=>{
+    if(e.touches&&e.touches.length===2){const d=tdist(e);if(pinch)cam.position.z=clamp(cam.position.z-(d-pinch)*0.01,3.2,8.2);pinch=d;return;}
+    if(!drag)return;const t=pt(e);const dx=t.x-px,dy=t.y-py;px=t.x;py=t.y;
+    pivot.rotation.y+=dx*0.01;pivot.rotation.x=clamp(pivot.rotation.x+dy*0.01,-1.35,1.35);
+  };
+  const up=()=>{drag=false;pinch=0;wrap.style.cursor='grab';};
+  T3.winMove=move;T3.winUp=up;
+  dom.addEventListener('mousedown',down);window.addEventListener('mousemove',move);window.addEventListener('mouseup',up);
+  dom.addEventListener('touchstart',e=>{if(e.touches.length===2){pinch=tdist(e);T3.auto=false;}else down(e);},{passive:true});
+  dom.addEventListener('touchmove',e=>{move(e);if(e.cancelable)e.preventDefault();},{passive:false});
+  dom.addEventListener('touchend',up);
+  dom.addEventListener('wheel',e=>{cam.position.z=clamp(cam.position.z+Math.sign(e.deltaY)*0.4,3.2,8.2);e.preventDefault();},{passive:false});
+  T3.onResize=()=>{if(!T3)return;const s=Math.max(220,Math.min(wrap.clientWidth,520));rnd.setSize(s,s);cam.aspect=1;cam.updateProjectionMatrix();};
+  window.addEventListener('resize',T3.onResize);
+  // Render-Loop
+  function loop(){
+    if(!T3)return;T3.raf=requestAnimationFrame(loop);
+    if(T3.auto&&!T3.running)pivot.rotation.y+=0.0035;
+    T3.goal.rotation.z+=0.01;
+    if(T3.anim)T3.anim();
+    rnd.render(scene,cam);
+  }
+  loop();
+}
+function makeLabel(txt){
+  const cv=document.createElement('canvas');cv.width=cv.height=128;const x=cv.getContext('2d');
+  x.fillStyle='rgba(0,0,0,0)';x.fillRect(0,0,128,128);
+  x.fillStyle='#fff';x.font='bold 92px monospace';x.textAlign='center';x.textBaseline='middle';
+  x.fillText(txt,64,68);
+  const tx=new THREE.CanvasTexture(cv);tx.anisotropy=4;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,transparent:true,depthTest:false}));
+  return sp;
+}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function pt(e){const t=e.touches?e.touches[0]:e;return{x:t.clientX,y:t.clientY};}
+function tdist(e){const a=e.touches[0],b=e.touches[1];return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);}
+function tubeResetView(){if(!T3)return;T3.pivot.rotation.set(T3.base.x,T3.base.y,0);T3.cam.position.z=5.4;T3.auto=true;}
+function crtSet(html,on){const el=document.getElementById('t3crt');if(!el)return;el.innerHTML=html;el.classList.toggle('on',!!on);if(on){el.classList.remove('flick');void el.offsetWidth;el.classList.add('flick');}}
+function setPBtns(dis){['A','B','C','D'].forEach(l=>{const b=document.getElementById('t3b'+l);if(b)b.disabled=dis;});}
+function redFlash(){
+  let o=document.getElementById('fxRed');
+  if(!o){o=document.createElement('div');o.id='fxRed';document.body.appendChild(o);}
+  o.classList.add('on');setTimeout(()=>o.classList.remove('on'),360);
+  const f=document.getElementById('t3flash');if(f){f.style.opacity='.5';setTimeout(()=>f.style.opacity='0',340);}
+  const tb=document.getElementById('tBox');if(tb){tb.classList.remove('tbox-flash');void tb.offsetWidth;tb.classList.add('tbox-flash');}
+}
+
+async function launchBall(letter){
+  if(!T3||T3.running)return;
+  T3.running=true;T3.auto=false;setPBtns(true);
+  const cE=document.getElementById('cE');if(cE)cE.textContent='';
+  const def=T3.P[letter],curve=T3.curves[letter];
+  const correct=(cfg.stations[grp.cur].code||'C').toUpperCase()===letter;
+  crtSet('&gt; KUGEL ROLLT AUF BAHN '+letter+' ...',false);
+  T3.ball.visible=true;
+  try{pT&&pT(220,gA().currentTime,.15,'sawtooth');}catch{}
+  await runBall(curve,correct?1:0.55,correct?2600:1500);
+  if(correct){
+    // Stromkreis geschlossen
+    T3.goal.material.emissive.setHex(0x33ff88);T3.goal.material.emissiveIntensity=1.4;
+    pHappy();
+    crtSet('&gt; <b>SECURITY OVERRIDE SUCCESSFUL</b><br>&gt; STROMKREIS GESCHLOSSEN<br>&gt; CODE: <b>BYPASS</b>',true);
+    await sleep(1700);
+    tubeDispose();
+    await adv();
+  }else{
+    // stecken bleiben / ins Leere fallen
+    if(def.end==='loop'){await loopBall(curve,2);}
+    else{await dropBall();}
+    redFlash();
+    try{pSiren(gA().currentTime,0.5);}catch{}
+    crtSet('&gt; BAHN '+letter+': STROMKREIS NICHT GESCHLOSSEN<br>&gt; <b style="color:#ff7a7a">BYPASS FEHLGESCHLAGEN</b> · −2:00',false);
+    grp.bonus-=120;
+    await sS('intime-g-'+sk(grp.name),grp);
+    fb(false,'–2:00 · Bypass fehlgeschlagen');
+    await kiAdvance('Falscher Bypass-Pfad!');
+    if(gR()<=0&&!grp.go){tubeDispose();doGO('ZEIT ABGELAUFEN','');return;}
+    await sleep(500);
+    T3.ball.visible=false;T3.running=false;T3.auto=true;setPBtns(false);
+    if(cE)cE.textContent=`❌ Bahn ${letter} schließt den Stromkreis nicht. Dreht den Würfel und verfolgt die Bahnen genauer.`;
+  }
+}
+function runBall(curve,tEnd,dur){
+  return new Promise(res=>{
+    const t0=performance.now();
+    T3.anim=()=>{
+      const k=Math.min(1,(performance.now()-t0)/dur);
+      const e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2; // easeInOut
+      const t=e*tEnd;
+      const p=curve.getPointAt(Math.min(0.999,t));T3.ball.position.copy(p);
+      if(k>=1){T3.anim=null;res();}
+    };
+  });
+}
+function loopBall(curve,turns){
+  return new Promise(res=>{
+    const t0=performance.now(),dur=1400*turns;
+    T3.anim=()=>{
+      const k=(performance.now()-t0)/dur;
+      const t=0.55+0.45*((k*turns)%1);
+      const p=curve.getPointAt(Math.min(0.999,t));T3.ball.position.copy(p);
+      if(k>=1){T3.anim=null;res();}
+    };
+  });
+}
+function dropBall(){
+  return new Promise(res=>{
+    const t0=performance.now(),y0=T3.ball.position.y;
+    T3.anim=()=>{
+      const k=Math.min(1,(performance.now()-t0)/650);
+      T3.ball.position.y=y0-k*k*1.8;
+      T3.ball.material.opacity=1-k;T3.ball.material.transparent=true;
+      if(k>=1){T3.anim=null;T3.ball.material.opacity=1;res();}
+    };
+  });
+}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+function rInp(){
+  const s=cfg.stations[grp.cur],c=document.getElementById('inp');
+  if(s.type!=='tube')tubeDispose();
+  if(s.type==='slide'){
+    c.innerHTML=`<div class="card" style="padding-top:1.25rem;padding-bottom:1.25rem"><div id="puz"></div></div>`;
+    renderSlide(document.getElementById('puz'),()=>adv());
+  }else if(s.type==='uv'){
+    renderUV(c);
+  }else if(s.type==='code'){
+    const code=s.code||'';
+    c.innerHTML=`<div class="card"><label style="font-size:12px;color:var(--color-text-secondary);display:block;margin-bottom:8px;text-align:center">Code eingeben (${code.length} Zeichen)</label>${boxes(code.length,numCode(code))}<p id="cE" class="em" style="text-align:center"></p></div><button onclick="chkCode()" style="width:100%;padding:1rem;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px"><i class="ti ti-check"></i> Code bestätigen</button>`;
+    wireBoxes(chkCode);
+  }else if(s.type==='choice'){
+    c.innerHTML=`<div class="card">${(s.options||[]).map((o,j)=>`<button class="cbtn" onclick="chkCh(${j})"><span style="font-family:var(--font-mono);font-size:12px;font-weight:500;min-width:20px">${['A','B','C','D'][j]}</span><span>${es(o)}</span></button>`).join('')}<p id="cE" class="em"></p></div>`;
+  }else if(s.type==='tube'){
+    renderTube(c);
+  }else if(s.type==='boss'){
+    const b=s.boss[grp.bp];
+    if(grp.bpStart===0){
+      c.innerHTML=`<button onclick="startBoss()" style="width:100%;padding:1.25rem;font-size:16px;display:flex;align-items:center;justify-content:center;gap:8px"><i class="ti ti-swords" style="font-size:22px"></i> BOSS-BATTLE STARTEN</button>`;
+    }else{
+      const head=`<div class="bosshdr"><span style="font-size:12px;font-weight:500;color:var(--color-text-danger)">⚔️ ${es(b.t)} (${grp.bp+1}/3)</span><span class="bosstime" id="bossT">${fm(b.lim)}</span></div><div class="card"><p style="font-size:13px;line-height:1.7;white-space:pre-wrap">${es(b.d)}</p></div>`;
+      const hintBtn=`<button onclick="bossHint()" class="jkb" id="bhBtn"><i class="ti ti-bulb"></i> Boss-Joker (–2 Min.)</button><div class="jkh" id="bhH" style="display:none"></div>`;
+      if(b.mini==='pipes'){
+        c.innerHTML=head+`<div class="card" style="padding-top:1.25rem;padding-bottom:1.25rem"><div id="puz"></div></div>`+hintBtn;
+        renderPipes(document.getElementById('puz'),bossWin);
+      }else if(b.mini==='gears'){
+        c.innerHTML=head+`<div class="card" style="padding-top:1.25rem;padding-bottom:1.25rem"><div id="puz"></div></div>`+hintBtn;
+        renderGears(document.getElementById('puz'),bossWin);
+      }else if(b.mini==='audio'){
+        c.innerHTML=head+`<div class="card"><button onclick="playAudioPhase()" style="width:100%;padding:.85rem;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:14px"><i class="ti ti-volume"></i> Signal abspielen</button><label style="font-size:12px;color:var(--color-text-secondary);display:block;margin-bottom:8px;text-align:center">Code eingeben (${(b.c||'').length} Zeichen): Klingel, Hupe, Klopfen, Sirene</label>${boxes((b.c||'').length,numCode(b.c))}<p id="cE" class="em" style="text-align:center"></p></div><button onclick="chkBoss()" style="width:100%;padding:1rem;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px"><i class="ti ti-check"></i> Bestätigen</button>`+hintBtn;
+        wireBoxes(chkBoss);
+      }else if(b.mini==='numlock'){
+        c.innerHTML=head+renderNumlock(b)+hintBtn;
+        wireNumlock();
+      }else{
+        c.innerHTML=head+`<div class="card"><label style="font-size:12px;color:var(--color-text-secondary);display:block;margin-bottom:8px;text-align:center">Lösung eingeben (${(b.c||'').length} Zeichen)</label>${boxes((b.c||'').length,numCode(b.c))}<p id="cE" class="em" style="text-align:center"></p></div><button onclick="chkBoss()" style="width:100%;padding:1rem;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px"><i class="ti ti-check"></i> Bestätigen</button>`+hintBtn;
+        wireBoxes(chkBoss);
+      }
+    }
+  }
+}
+
+async function startBoss(){grp.bpStart=Date.now();await sS('intime-g-'+sk(grp.name),grp);rInp();}
+
+async function pen(dbl){
+  let ps=cfg.penSec||60;if(dbl)ps*=2;
+  grp.bonus-=ps;
+  await sS('intime-g-'+sk(grp.name),grp);
+  fb(false,`–${fm(ps)}`);
+  await kiAdvance('Falsche Antwort!');
+  if(gR()<=0&&!grp.go){doGO('ZEIT ABGELAUFEN','');return true;}
+  return grp.go;
+}
+
+async function chkCode(){
+  const inp=readBoxes().trim();
+  const s=cfg.stations[grp.cur],err=document.getElementById('cE');
+  if(!inp){err.textContent='Bitte Code eingeben.';return;}
+  if(inp!==(s.code||'').toUpperCase()){const d=(grp.th||5)>=7;err.textContent=`Falscher Code!${d?' (Zone 2: ×2)':''}`;await pen(d);return;}
+  err.textContent='';await adv();
+}
+async function chkCh(idx){
+  const s=cfg.stations[grp.cur],err=document.getElementById('cE');
+  if(idx!==(s.correctIdx||0)){const d=(grp.th||5)>=7;err.textContent=`Falsch!${d?' (Zone 2: ×2)':''}`;document.querySelectorAll('.cbtn')[idx]?.setAttribute('disabled','');await pen(d);return;}
+  await adv();
+}
+async function chkBoss(){
+  const inp=readBoxes().trim();
+  const s=cfg.stations[grp.cur],b=s.boss[grp.bp],err=document.getElementById('cE');
+  if(!inp){err.textContent='Bitte Lösung eingeben.';return;}
+  if(inp!==(b.c||'').toUpperCase()){const d=(grp.th||5)>=7;err.textContent=`Falsch!${d?' (×2)':''}`;await pen(d);return;}
+  err.textContent='';await bossWin();
+}
+async function bossWin(){
+  grp.th=Math.max(0,(grp.th||5)-1);
+  pHappy();
+  if(grp.bp>=2){
+    grp.fin=true;grp.finTime=Math.round(gR());grp.th=0;
+    await sS('intime-g-'+sk(grp.name),grp);clearInterval(tick);
+    document.getElementById('vN').textContent=grp.name;document.getElementById('vT').textContent=fm(grp.finTime);SS('svic');return;
+  }
+  grp.bp++;grp.bpStart=Date.now();
+  fb(true,`✓ Phase ${grp.bp}/3 geknackt! KI –1`);
+  await sS('intime-g-'+sk(grp.name),grp);rTh();rInp();
+}
+function bossHint(){
+  const s=cfg.stations[grp.cur],b=s.boss[grp.bp];
+  if(!b.h)return;
+  grp.bonus-=120;fb(false,'–2:00 (Joker)');
+  const h=document.getElementById('bhH');if(h){h.textContent=b.h;h.style.display='block';}
+  const btn=document.getElementById('bhBtn');if(btn)btn.disabled=true;
+  sS('intime-g-'+sk(grp.name),grp);
+}
+
+async function adv(){
+  const s=cfg.stations[grp.cur];
+  grp.bonus+=(s.bonMin||0)*60;grp.th=Math.max(0,(grp.th||5)-1);grp.cur++;
+  let extra='';
+  if(grp.cur===2&&!grp.ph1){grp.ph1=true;extra='🏆 Phase 1 geschafft! Die KI rückt jetzt langsamer vor.';}
+  else if(grp.cur===5&&!grp.bkp){grp.bkp=true;extra='🔋 Phase 2! Backup-System freigeschaltet – wendet eine Explosion ab.';}
+  else if(grp.th===0){grp.bonus+=300;grp.th=3;extra='🎯 System komplett gehackt! +5 Min. Bonus!';}
+  pHappy();
+  if(grp.cur>=cfg.stations.length){
+    grp.fin=true;grp.finTime=Math.round(gR());await sS('intime-g-'+sk(grp.name),grp);clearInterval(tick);
+    document.getElementById('vN').textContent=grp.name;document.getElementById('vT').textContent=fm(grp.finTime);SS('svic');return;
+  }
+  await sS('intime-g-'+sk(grp.name),grp);
+  showUnlock(s.bonMin||0,extra);
+}
+
+function showUnlock(bonMin,extra){
+  const ns=cfg.stations[grp.cur];
+  document.getElementById('ulLoc').textContent=ns.loc||ns.title;
+  document.getElementById('ulBonus').textContent=bonMin>0?`+${bonMin}:00 Lebenszeit aufgeladen`:'Weiter geht\u2019s!';
+  const ex=document.getElementById('ulExtra');ex.textContent=extra||'';ex.style.display=extra?'block':'none';
+  document.getElementById('ulHint').textContent=ns.type==='boss'?'Das gro\xdfe Finale erwartet euch hier. Macht euch bereit!':'Lauft dorthin und knackt das n\xe4chste System!';
+  grp.waitingQR=true;sS('intime-g-'+sk(grp.name),grp);
+  rDots();rPB();
+  const rv=document.querySelector('#sunlock .ulreveal');if(rv){rv.classList.remove('ulreveal');void rv.offsetWidth;rv.classList.add('ulreveal');}
+  const ulEr=document.getElementById('ulE');if(ulEr)ulEr.textContent='';
+  const glBx=document.getElementById('glPinBox');if(glBx)glBx.style.display='none';
+  const glWp=document.getElementById('glPinWrap');if(glWp)[...glWp.querySelectorAll('.cbox')].forEach(b=>b.value='');
+  _ulWired=false;SS('sunlock');wireUlInput();
+}
+function contAfterUnlock(){grp.waitingQR=false;sS('intime-g-'+sk(grp.name),grp);document.getElementById('jkH').style.display='none';rSt();SS('sga');}
+
+let _ulWired=false,_glWired=false;
+function wireUlInput(){
+  const inp=document.getElementById('ulWordInput');if(!inp)return;
+  if(!_ulWired){_ulWired=true;inp.addEventListener('keydown',e=>{if(e.key==='Enter')chkUlCode();});inp.addEventListener('input',()=>{inp.value=inp.value.toUpperCase();});}
+  inp.value='';setTimeout(()=>inp.focus(),100);
+}
+function chkUlCode(){
+  const wi=document.getElementById('ulWordInput');
+  const inp=(wi?.value||'').trim().toUpperCase();
+  const err=document.getElementById('ulE');
+  if(!inp){if(err)err.textContent='Bitte Codewort eingeben.';return;}
+  const ns=cfg.stations[grp.cur];
+  const wc=(ns?.wordCode||'').toUpperCase();
+  if(inp===wc){if(err)err.textContent='';contAfterUnlock();}
+  else{if(err)err.textContent='❌ Zugang verweigert – falsches Codewort.';if(wi){wi.value='';wi.focus();}}
+}
+function wireGLBoxes(){
+  const wrap=document.getElementById('glPinWrap');if(!wrap)return;
+  if(_glWired){wrap.querySelectorAll('.cbox')[0]?.focus();return;}
+  _glWired=true;
+  const bx=[...wrap.querySelectorAll('.cbox')];
+  bx.forEach((b,i)=>{
+    b.addEventListener('input',()=>{b.value=b.value.replace(/[^0-9]/g,'');if(b.value&&i<bx.length-1)bx[i+1].focus();});
+    b.addEventListener('keydown',e=>{if(e.key==='Backspace'&&!b.value&&i>0){bx[i-1].focus();bx[i-1].value='';e.preventDefault();}else if(e.key==='Enter')chkGLPin();});
+    b.addEventListener('focus',()=>b.select());
+  });
+  bx[0]?.focus();
+}
+function toggleGLPin(){
+  const box=document.getElementById('glPinBox');
+  const open=box.style.display==='none';box.style.display=open?'block':'none';
+  if(open){const bx=[...document.getElementById('glPinWrap').querySelectorAll('.cbox')];bx.forEach(b=>b.value='');document.getElementById('glE').textContent='';wireGLBoxes();}
+}
+function chkGLPin(){
+  const wrap=document.getElementById('glPinWrap');
+  const inp=[...wrap.querySelectorAll('.cbox')].map(b=>b.value).join('');
+  const err=document.getElementById('glE');
+  if(inp==='1991'){if(err)err.textContent='';document.getElementById('glPinBox').style.display='none';contAfterUnlock();}
+  else{if(err)err.textContent='Falscher PIN.';[...wrap.querySelectorAll('.cbox')].forEach(b=>b.value='');wrap.querySelectorAll('.cbox')[0]?.focus();}
+}
+
+async function doGO(r,m){clearInterval(tick);grp.go=true;grp.finTime=0;await sS('intime-g-'+sk(grp.name),grp);document.getElementById('goR').textContent=r;document.getElementById('goM').textContent=m;document.getElementById('goN').textContent=grp.name;document.getElementById('goSt').textContent=`${grp.cur}/${cfg.stations.length}`;SS('sgo');}
+
+function uJk(){
+  const s=cfg.stations[grp.cur],btn=document.getElementById('jkBtn'),hin=document.getElementById('jkH');if(!btn)return;
+  if(s.type==='boss'){btn.style.display='none';if(hin)hin.style.display='none';return;}
+  const z3=(grp.th||5)>=8;
+  const hasJoker=s?.hint||s?.type==='slide';
+  if(!hasJoker||z3){btn.disabled=true;btn.style.display='flex';btn.innerHTML=z3?'<i class="ti ti-lock"></i> Joker gesperrt (Zone 3: Ressourcen-Sperre)':'<i class="ti ti-bulb"></i> Kein Joker';}
+  else if(grp.jku?.includes(grp.cur)){btn.disabled=true;btn.style.display='flex';btn.innerHTML='<i class="ti ti-bulb"></i> Joker verwendet';if(hin){hin.textContent=s.hint||'';hin.style.display=s.hint?'block':'none';}}
+  else{btn.disabled=false;btn.style.display='flex';btn.innerHTML='<i class="ti ti-bulb"></i><span>Joker nutzen (–2 Min.)</span>';if(hin)hin.style.display='none';}
+}
+async function useJoker(){
+  const s=cfg.stations[grp.cur];
+  const hasJoker=s?.hint||s?.type==='slide';
+  if(!hasJoker||(grp.th||5)>=8||grp.jku?.includes(grp.cur))return;
+  grp.bonus-=120;if(!grp.jku)grp.jku=[];grp.jku.push(grp.cur);fb(false,'–2:00 (Joker)');
+  if(s.type==='slide'){
+    // Puzzle auf exakt 4 Züge vor Lösung setzen
+    // Zustand [1,2,3,4,8,5,0,7,6]: leeres Feld bei Index 6
+    // Zug 1: Kachel 7 (Index 7) nach links  → [1,2,3,4,8,5,7,0,6]
+    // Zug 2: Kachel 8 (Index 4) nach unten  → [1,2,3,4,0,5,7,8,6]
+    // Zug 3: Kachel 5 (Index 5) nach links  → [1,2,3,4,5,0,7,8,6]
+    // Zug 4: Kachel 6 (Index 8) nach oben   → [1,2,3,4,5,6,7,8,0] ✓
+    slTiles=[1,2,3,4,8,5,0,7,6];
+    const puz=document.getElementById('puz');if(puz)drawSlide(puz);
+    const hin=document.getElementById('jkH');
+    if(hin){hin.textContent='💡 Fast geschafft! Noch 4 Züge: 7 nach links, 8 nach unten, 5 nach links, 6 nach oben!';hin.style.display='block';}
+  }else{
+    const hin=document.getElementById('jkH');if(hin){hin.textContent=s.hint;hin.style.display='block';}
+  }
+  uJk();await sS('intime-g-'+sk(grp.name),grp);if(gR()<=0)doGO('ZEIT ABGELAUFEN','');
+}
+
+async function loadLB(){
+  const el=document.getElementById('lbL');el.innerHTML='<p style="font-size:13px;color:var(--color-text-secondary)">Lade...</p>';
+  const gs=(await sG('intime-gs'))||[];
+  if(!gs.length){el.innerHTML='<p style="font-size:13px;color:var(--color-text-secondary)">Noch keine Teams.</p>';return;}
+  const sts=await Promise.all(gs.map(n=>sG('intime-g-'+sk(n))));
+  const c=await sG('intime-cfg'),tot=c?c.stations.length:'?';
+  const rows=sts.filter(Boolean).map(g=>{const t=g.go?0:g.fin?g.finTime:Math.max(0,g.startSec+g.bonus-(Date.now()-g.startTs)/1000);return{name:g.name,t:Math.round(t),st:g.cur,fin:g.fin,go:g.go,th:Math.round(g.th||5),ph:gPh(g.cur).n};}).sort((a,b)=>b.t-a.t||b.st-a.st);
+  el.innerHTML=rows.map((e,i)=>{const iT=i===0&&e.t>0;const sb=e.go?'<span class="badge be">KI gewonnen</span>':e.fin?'<span class="badge bs">Welt gerettet</span>':'<span class="badge bi">Phase '+e.ph+'</span>';const thr=Array.from({length:10},(_,j)=>`<div style="width:9px;height:9px;border-radius:2px;background:${j<e.th?TC.h:tC(j)}"></div>`).join('');return`<div class="lbi${iT?' top':''}"><div><p style="font-size:14px;font-weight:500">${iT?'🏆 ':''}${es(e.name)}</p><p style="font-size:12px;color:var(--color-text-secondary);margin-top:2px">${e.st}/${tot} ${sb}</p><div style="display:flex;gap:2px;margin-top:5px">${thr}</div></div><div style="text-align:right"><p style="font-family:var(--font-mono);font-size:20px;font-weight:500">${fm(e.t)}</p></div></div>`;}).join('');
+}
+
+
+// ── Export / Import ──
+function exportCfg(){
+  const json=JSON.stringify(cfg,null,2);
+  document.getElementById('importBox').style.display='none';
+  const box=document.getElementById('exportBox'),ta=document.getElementById('exportTA');
+  ta.value=json;box.style.display='block';
+  try{navigator.clipboard.writeText(json);}catch{}
+  ta.focus();ta.select();
+}
+function toggleImport(){
+  document.getElementById('exportBox').style.display='none';
+  const box=document.getElementById('importBox');
+  const next=box.style.display==='none'?'block':'none';
+  box.style.display=next;
+  if(next==='block')document.getElementById('importTA').focus();
+}
+async function importCfg(){
+  const ta=document.getElementById('importTA'),m=document.getElementById('importM');
+  try{
+    const c=JSON.parse(ta.value);
+    if(!c.stations||!Array.isArray(c.stations)){m.style.color='var(--color-text-danger)';m.textContent='Fehler: kein gültiges Config-JSON.';return;}
+    cfg=c;cfg.defv=DEFV;
+    document.getElementById('cS').value=cfg.startMin||15;
+    document.getElementById('cP').value=cfg.penSec||60;
+    document.getElementById('cK').value=cfg.kiSec??120;
+    rStL();
+    await sS('intime-cfg',cfg);
+    document.getElementById('importBox').style.display='none';
+    ta.value='';m.textContent='';
+    const cm=document.getElementById('cfgM');
+    cm.style.color='var(--color-text-success)';
+    cm.textContent='✓ Config importiert und gespeichert! ('+cfg.stations.length+' Locations)';
+    setTimeout(()=>cm.textContent='',5000);
+  }catch(e){m.style.color='var(--color-text-danger)';m.textContent='JSON-Fehler: '+e.message;}
+}
+
+document.getElementById('jN').addEventListener('keydown',e=>{if(e.key==='Enter')startGame();});
+
+// ── PWA: Service Worker ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(r => console.log('[PWA] SW aktiv, Scope:', r.scope))
+      .catch(e => console.warn('[PWA] SW fehlgeschlagen:', e));
+  });
+}
+
+// ── PWA: Install-Banner (Android Chrome) ──
+let deferredPrompt = null;
+const banner = document.getElementById('pwa-banner');
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // Zeige Banner erst nach 3 Sek, damit das Spiel nicht gleich überlagert wird
+  setTimeout(() => banner.classList.add('show'), 3000);
+});
+
+document.getElementById('pwa-banner-btn').addEventListener('click', async () => {
+  banner.classList.remove('show');
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  console.log('[PWA] Install:', outcome);
+  deferredPrompt = null;
+});
+
+document.getElementById('pwa-banner-close').addEventListener('click', () => {
+  banner.classList.remove('show');
+  deferredPrompt = null;
+});
+
+window.addEventListener('appinstalled', () => {
+  banner.classList.remove('show');
+  deferredPrompt = null;
+  console.log('[PWA] App installiert!');
+});
+
+// ── QR-Code für Start-Link ──
+function showQRCode(){
+  const container=document.getElementById('qrContainer');
+  container.innerHTML=''; // Clear old QR code
+  const url='https://denniejoow.github.io/index.html/';
+  new QRCode(container,{
+    text:url,
+    width:280,
+    height:280,
+    colorDark:'#000',
+    colorLight:'#fff',
+    correctLevel:QRCode.CorrectLevel.H
+  });
+  SS('sqrcode');
+}
+
+function downloadQR(){
+  const canvas=document.querySelector('#qrContainer canvas');
+  if(!canvas)return;
+  const link=document.createElement('a');
+  link.href=canvas.toDataURL('image/png');
+  link.download='system-override-qr.png';
+  link.click();
+}
+
+// ── Stationskarten ──
+async function loadCodes(){
+  let c=cfg;
+  if(!c)c=await getCfg();
+  const phN=i=>i<=1?'Phase\u00A01\u00B7Infrastruktur':i<=4?'Phase\u00A02\u00B7Server-Farmen':'Phase\u00A03\u00B7Mainframe';
+  const tN={code:'Code-R\xe4tsel',choice:'Auswahl-R\xe4tsel',slide:'Schiebe-Puzzle',uv:'UV-Licht-R\xe4tsel',boss:'\u2694 Boss-Finale'};
+  const list=document.getElementById('qrList');list.innerHTML='';
+  c.stations.forEach((s,i)=>{
+    const card=document.createElement('div');card.className='qr-card';
+    const wc=s.wordCode||'';
+    card.innerHTML=
+      '<div class="qr-header">'+phN(i+1)+'</div>'+
+      '<div class="qr-num">STATION '+(i+1)+'/'+c.stations.length+'</div>'+
+      '<div class="qr-loc">'+es(s.loc||s.title)+'</div>'+
+      '<div class="qr-type">'+(tN[s.type]||s.type||'')+'</div>'+
+      (wc
+        ?'<span class="qr-pin-label">CODEWORT</span><div class="qr-pin-box" style="font-size:18pt;letter-spacing:4px;padding:5px 12px">'+es(wc)+'</div>'
+        :'<span class="qr-pin-label" style="margin-top:9px;display:block">Startpunkt – kein Codewort nötig</span>');
+    list.appendChild(card);
+  });
+}
+
+</script>
+
+<!-- PWA Install Banner -->
+<div id="pwa-banner">
+  <div id="pwa-banner-icon">📲</div>
+  <div id="pwa-banner-text">
+    <strong>Als App installieren</strong>
+    <span>Offline spielbar · Kein Browser-Rand</span>
+  </div>
+  <button id="pwa-banner-btn">Installieren</button>
+  <button id="pwa-banner-close" aria-label="Schließen">×</button>
+</div>
+</body>
+</html>

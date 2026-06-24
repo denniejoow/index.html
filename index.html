@@ -407,6 +407,227 @@ let cfg=null,grp=null,tick=null,aC=null,audioEngine=null;
   document.addEventListener('click',unlock,{capture:true,once:true});
   document.addEventListener('touchstart',unlock,{capture:true,once:true,passive:true});
 })();
+
+
+class ProceduralAudioEngine {
+
+  constructor() {
+    this._threat  = 0;
+    this.isRunning = false;
+    this._master  = null;
+    this._lg      = {};
+    this._reeseG  = null;
+    this._noiseB  = null;
+    this._drones  = [];
+    this._loop_t  = null;
+    this._step    = 0;
+    this.BPM      = 120;
+    this.FADE     = 0.7;
+  }
+
+  get ctx()           { return gA(); }
+  get isInitialized() { return !!this._master; }
+
+  // ── Init ────────────────────────────────────────────────────
+
+  init() {
+    try {
+      const C = this.ctx;
+
+      // Master direkt an Destination (kein Kompressor – weniger Fehlerquellen)
+      this._master = C.createGain();
+      this._master.gain.value = 0.75;
+      this._master.connect(C.destination);
+
+      // Rausch-Buffer für Snare
+      const sz = Math.ceil(C.sampleRate * 0.18);
+      const buf = C.createBuffer(1, sz, C.sampleRate);
+      const d   = buf.getChannelData(0);
+      for (let i = 0; i < sz; i++) d[i] = Math.random() * 2 - 1;
+      this._noiseB = buf;
+
+      // Stufe 1: Ambient-Pad (Cmaj7: C3 E3 G3 B3)
+      const ambG = C.createGain(); ambG.gain.value = 1.0;
+      ambG.connect(this._master); this._lg.ambient = ambG;
+      [[130.81,0.16],[164.81,0.12],[196.00,0.09],[246.94,0.06]].forEach(([f,v]) => {
+        const o=C.createOscillator(), g=C.createGain();
+        o.type='sine'; o.frequency.value=f; g.gain.value=v;
+        o.connect(g); g.connect(ambG); o.start(); this._drones.push(o);
+      });
+      // Warm-Bass C2
+      const bO=C.createOscillator(), bG=C.createGain();
+      bO.type='sine'; bO.frequency.value=65.41; bG.gain.value=0.25;
+      bO.connect(bG); bG.connect(ambG); bO.start(); this._drones.push(bO);
+      // Atem-LFO
+      const lfo=C.createOscillator(), lG=C.createGain();
+      lfo.type='sine'; lfo.frequency.value=0.1; lG.gain.value=0.15;
+      lfo.connect(lG); lG.connect(ambG.gain); lfo.start(); this._drones.push(lfo);
+
+      // Stufe 4: Reese-Bass
+      const marchG=C.createGain(); marchG.gain.value=0.0;
+      marchG.connect(this._master); this._lg.march=marchG;
+      const r1=C.createOscillator(), r2=C.createOscillator();
+      r1.type=r2.type='sawtooth';
+      r1.frequency.value=65.41; r2.frequency.value=65.68;
+      this._reeseG=C.createGain(); this._reeseG.gain.value=0;
+      const lp=C.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=400;
+      r1.connect(this._reeseG); r2.connect(this._reeseG);
+      this._reeseG.connect(lp); lp.connect(marchG);
+      r1.start(); r2.start(); this._drones.push(r1,r2);
+
+    } catch(e) { console.warn('[Audio init]', e); }
+  }
+
+  // ── Start / Stop ────────────────────────────────────────────
+
+  start() {
+    if (this.isRunning || !this._master) return;
+    this.isRunning = true;
+    this._step = 0;
+    this._run();
+  }
+
+  stop() {
+    this.isRunning = false;
+    clearTimeout(this._loop_t);
+    this._drones.forEach(o => { try { o.stop(); } catch {} });
+    this._drones=[]; this._lg={}; this._reeseG=null;
+    try { this._master?.disconnect(); } catch {}
+    this._master=null;
+  }
+
+  fadeOut(dur=1.5) {
+    if (!this._master) return;
+    const now=this.ctx.currentTime;
+    this._master.gain.cancelScheduledValues(now);
+    this._master.gain.setValueAtTime(this._master.gain.value, now);
+    this._master.gain.linearRampToValueAtTime(0, now+dur);
+    setTimeout(()=>this.stop(), (dur+0.15)*1000);
+  }
+
+  // ── Haupt-Loop (setTimeout, 16tel-Noten) ────────────────────
+
+  _run() {
+    if (!this.isRunning) return;
+    try {
+      const C   = this.ctx;
+      const t   = C.currentTime + 0.02;   // kleiner Vorlauf
+      const sd  = (60/this.BPM)/4;        // 16tel-Dauer in Sekunden
+      const s   = this._step % 16;
+      const v   = this._threat;
+
+      const wP = Math.max(0, 1 - Math.abs(v-0.30)/0.30);
+      const wT = Math.max(0, 1 - Math.abs(v-0.62)/0.30);
+      const wM = Math.max(0, 1 - Math.abs(v-1.00)/0.40);
+
+      // Stufe 2: Sonar-Ping + Metronom-Klick
+      if (wP > 0.02) {
+        if (s===0)     this._tone('sine',     880,  t, wP*0.28, 1.2);
+        if (s%4===0)   this._tone('triangle', 1400, t, wP*0.18, 0.03);
+      }
+
+      // Stufe 3: Bass-Lauf + Herzschlag-Kick + Arpeggio
+      if (wT > 0.02) {
+        const bSeq=[65.41,73.42,77.78,87.31,98.00,103.83,116.54,130.81];
+        if (s%2===0) this._bass(t, bSeq[Math.floor(s/2)%8], sd*1.8, wT*0.50);
+        if (s===0||s===8) this._kick(t, wT*0.65, 0.28);
+        const aSeq=[523.25,622.25,783.99,1046.50,1244.51,1567.98,1046.50,783.99];
+        if (s%2===0) this._tone('sine', aSeq[Math.floor(s/2)%8], t, wT*0.18, sd*1.6);
+      }
+
+      // Stufe 4: March-Kick + Snare + Reese-Hüllkurve + Dissonanz
+      if (wM > 0.02) {
+        if (s===0||s===8)  this._kick(t, wM*0.88, 0.32);
+        if (s===4||s===12) this._snare(t, wM*0.80);
+        if (s===0||s===8 && this._reeseG) {
+          this._reeseG.gain.cancelScheduledValues(t);
+          this._reeseG.gain.setValueAtTime(0.55*wM, t);
+          this._reeseG.gain.exponentialRampToValueAtTime(0.06*wM, t+sd*7);
+        }
+        if (s%4===0) {
+          const dis=[1046.50,1108.73,987.77,830.61];
+          this._tone('sawtooth', dis[(s/4)%4], t, wM*0.35, 0.22);
+        }
+      }
+
+      this._step++;
+    } catch(e) { console.warn('[Audio run]', e); }
+
+    this._loop_t = setTimeout(()=>this._run(), (60/this.BPM/4)*1000);
+  }
+
+  // ── Synthesizer ─────────────────────────────────────────────
+
+  _tone(type, freq, t, vol, dur) {
+    try {
+      const C=this.ctx, o=C.createOscillator(), g=C.createGain();
+      o.type=type; o.frequency.value=freq;
+      g.gain.setValueAtTime(Math.max(0.0001,vol), t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+Math.max(0.01,dur));
+      o.connect(g); g.connect(this._master);
+      o.start(t); o.stop(t+Math.max(0.01,dur)+0.01);
+    } catch {}
+  }
+
+  _bass(t, freq, dur, vol) {
+    try {
+      const C=this.ctx, o=C.createOscillator(), f=C.createBiquadFilter(), g=C.createGain();
+      o.type='sawtooth'; o.frequency.value=freq;
+      f.type='lowpass'; f.frequency.value=300;
+      g.gain.setValueAtTime(Math.max(0.0001,vol), t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+Math.max(0.01,dur));
+      o.connect(f); f.connect(g); g.connect(this._master);
+      o.start(t); o.stop(t+Math.max(0.01,dur)+0.01);
+    } catch {}
+  }
+
+  _kick(t, vol, dur) {
+    try {
+      const C=this.ctx, o=C.createOscillator(), g=C.createGain();
+      o.frequency.setValueAtTime(150,t);
+      o.frequency.exponentialRampToValueAtTime(30, t+dur*0.8);
+      g.gain.setValueAtTime(Math.max(0.0001,vol), t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+      o.connect(g); g.connect(this._master);
+      o.start(t); o.stop(t+dur+0.01);
+    } catch {}
+  }
+
+  _snare(t, vol) {
+    try {
+      const C=this.ctx, ns=C.createBufferSource();
+      ns.buffer=this._noiseB;
+      const hp=C.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=2200;
+      const g=C.createGain();
+      g.gain.setValueAtTime(Math.max(0.0001,vol*0.8), t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+0.10);
+      ns.connect(hp); hp.connect(g); g.connect(this._master);
+      ns.start(t); ns.stop(t+0.11);
+      this._tone('triangle', 220, t, vol*0.4, 0.05);
+    } catch {}
+  }
+
+  // ── Bedrohungslevel ─────────────────────────────────────────
+
+  updateThreatLevel(value) {
+    value=Math.max(0,Math.min(1,value));
+    this._threat=value;
+    if (!this._master) return;
+    const now=this.ctx.currentTime, at=now+this.FADE;
+    const ramp=(name,target)=>{
+      const g=this._lg[name]; if(!g) return;
+      g.gain.cancelScheduledValues(now);
+      g.gain.setValueAtTime(g.gain.value, now);
+      g.gain.linearRampToValueAtTime(target, at);
+    };
+    ramp('ambient', Math.max(0, 1-Math.abs(value-0.00)/0.38));
+    ramp('march',   Math.max(0, 1-Math.abs(value-1.00)/0.40));
+  }
+
+  get threatLevel() { return this._threat; }
+}
+
+
 const L1_IMG="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAEsASwDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDyeiiiv6iPywKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKpXOowRTtbIfMnVdxQDNP03S/GWtvt0nwtrV0D0KWxRfzNfKZpxhl+X1HSbc5LdR6erdl+Z62FybEYiKnok+5aorptC+C3xg1C5hM/h5dPhLjf9qugpx612Fv8APHodI7mXSQD1kW4BA544rny7jfAYubjUvTsr3laz8tOppicixFFJx970PKaK940X9nW6uB5l74otVQMVIghLHI9zxXQ2v7OPh5QPtPiLU3PcJGgH611VeMsopu3tL+if8AkZQyXGS+zb5o+ZqK+qYP2fPBEYUSXmqSkdSXAz+VWovgL8PkB3x6jJ9bkjFckuO8rW3M/l/wTZZBin2+8+TKK+tf+FEfDv8A59r/AP8AAs0f8KI+Hf8Az7ah/wCBZqf9fcs7T+5f5j/1fxXdff8A8A+SqK+rpPgD4DYHa+pJk9ps4qncfs7+EJCTDq+rQg9ANjY/OtI8dZU93Jf9u/5EvIcWu33ny7RX0bf/ALN9iUb7B4nnVsfL58AI/HFcpqP7P/iaN5V07VdNvmibawJMf867qPF2UVdq1vVNfoYTyfGQ+xf0seO0V6FrPwD+KMavNZppU67Bsjjuxu3d81xOr/Dz4raKC+oeDNTaMZ+eBvMU49K8fEcfYKjWdOMJSSdrq1n5rU7KfD9ecFJySfbUp0Vm293qEd9FZahpl7aTStsVbiBoyT6c1oRurrlTnBIP1FfQ5TxBgs1uqEveW6ej/r0POxmXV8JrUWndbDqKKK9s4QooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACvQ/gN4Ii8aeMPL1CJn0qyTzboA43Z4VM9snP5V55X2F+zz4WHhr4fW8s8e291D/AEqc45AI+RfwXB+pNfMcWZs8uwDdN2nPReXd/JfjY9TKMIsTiFzL3VqzpdE8D+DdAJfSvDWmW0rfekEALH6k1thvLjCR4RB0VRgCkmlHLMcADJPoKwYdV1S8hW4tLC1SGQkRfabkxu/vgKa/DpSc5OUnds+5SSVkbZk5xms4XojlRn8v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";
 
 // ── Alle Locations aus dem Spieldesign-Dokument – sofort spielbar ──
@@ -1386,263 +1607,6 @@ async function loadCodes(){
 // Verwendet den bestehenden gA()-AudioContext des Spiels.
 // ══════════════════════════════════════════════════════════════════
 
-class ProceduralAudioEngine {
-
-  constructor() {
-    this._threat  = 0;
-    this.isRunning = false;
-    this._master  = null;   // GainNode → Kompressor → Destination
-    this._lg      = {};     // Layer-Gains { ambient, march }
-    this._reeseG  = null;   // Reese-Bass-Hüllkurve
-    this._noiseB  = null;   // Pre-generierter Rausch-Buffer (Snare)
-    this._drones  = [];     // Persistente Oszillatoren (für stop())
-    this.BPM      = 120;
-    this.STEPS    = 16;
-    this._step    = 0;
-    this._bars    = 0;
-    this._next    = 0;
-    this.AHEAD    = 0.12;
-    this.LOOK     = 25;
-    this._timer   = null;
-    this.FADE     = 0.7;
-  }
-
-  // Immer den bestehenden Spiel-AudioContext verwenden → kein zweiter Context!
-  get ctx() { return gA(); }
-  get isInitialized() { return !!this._master; }
-
-  // ── Init: Drone-Nodes aufbauen ──────────────────────────────────
-
-  init() {
-    const C = this.ctx;
-
-    // Master-Gain + sanfter Kompressor
-    this._master = C.createGain();
-    this._master.gain.value = 0.75;
-    const comp = C.createDynamicsCompressor();
-    comp.threshold.value = -14; comp.knee.value = 8;
-    comp.ratio.value = 4; comp.attack.value = 0.003; comp.release.value = 0.25;
-    this._master.connect(comp);
-    comp.connect(C.destination);
-
-    // Pre-generate Snare-Rauschen
-    this._noiseB = this._mkNoiseBuf(C, 0.20);
-
-    // ─ Stufe 1: Cmaj7-Pad (C3 E3 G3 B3 C4) + Warm-Bass C2 ──────
-    const ambL = this._mkLayer(C, 'ambient', 1.0);
-    [[130.81,0.17],[164.81,0.13],[196.00,0.10],[246.94,0.07],[261.63,0.05]].forEach(([f,v]) => {
-      const o=C.createOscillator(), g=C.createGain();
-      o.type='sine'; o.frequency.value=f; g.gain.value=v;
-      o.connect(g); g.connect(ambL); o.start(); this._drones.push(o);
-    });
-    const bO=C.createOscillator(), bG=C.createGain();
-    bO.type='sine'; bO.frequency.value=65.41; bG.gain.value=0.28;
-    bO.connect(bG); bG.connect(ambL); bO.start(); this._drones.push(bO);
-    // Atem-LFO
-    const lfo=C.createOscillator(), lG=C.createGain();
-    lfo.type='sine'; lfo.frequency.value=0.11; lG.gain.value=0.18;
-    lfo.connect(lG); lG.connect(ambL.gain); lfo.start(); this._drones.push(lfo);
-
-    // ─ Stufe 4: Reese-Bass (2× Sägezahn, verstimmt + Distortion) ─
-    const marchL = this._mkLayer(C, 'march', 0.0);
-    const r1=C.createOscillator(), r2=C.createOscillator();
-    r1.type='sawtooth'; r1.frequency.value=65.41;
-    r2.type='sawtooth'; r2.frequency.value=65.41*1.0041;
-    this._reeseG = C.createGain(); this._reeseG.gain.value=0;
-    const ws=C.createWaveShaper(); ws.curve=this._mkDistCurve(65); ws.oversample='4x';
-    const lp=C.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=420; lp.Q.value=1.8;
-    r1.connect(this._reeseG); r2.connect(this._reeseG);
-    this._reeseG.connect(ws); ws.connect(lp); lp.connect(marchL);
-    r1.start(); r2.start(); this._drones.push(r1, r2);
-  }
-
-  _mkLayer(C, name, init) {
-    const g=C.createGain(); g.gain.value=init; g.connect(this._master);
-    this._lg[name]=g; return g;
-  }
-
-  // ── Start / Stop ────────────────────────────────────────────────
-
-  start() {
-    if (this.isRunning) return;
-    if (!this._master) return;
-    this._step=0; this._bars=0;
-    this._next=this.ctx.currentTime+0.05;
-    this.isRunning=true;
-    this._tick();
-  }
-
-  stop() {
-    this.isRunning=false;
-    clearTimeout(this._timer);
-    this._drones.forEach(o=>{try{o.stop();}catch{}});
-    this._drones=[]; this._lg={}; this._reeseG=null;
-    try{this._master?.disconnect();}catch{}
-    this._master=null;
-    // gA()-Context NICHT schließen – er gehört dem Spiel!
-  }
-
-  fadeOut(dur=1.5) {
-    if (!this._master) return;
-    const now=this.ctx.currentTime;
-    this._master.gain.cancelScheduledValues(now);
-    this._master.gain.setValueAtTime(this._master.gain.value, now);
-    this._master.gain.linearRampToValueAtTime(0, now+dur);
-    setTimeout(()=>this.stop(), (dur+0.15)*1000);
-  }
-
-  // ── Scheduler ───────────────────────────────────────────────────
-
-  _sd() { return (60/this.BPM)/(this.STEPS/4); }
-
-  _tick() {
-    if (!this.isRunning) return;
-    const now=this.ctx.currentTime;
-    while (this._next < now+this.AHEAD) {
-      this._fireStep(this._step, this._next);
-      this._next+=this._sd();
-      this._step=(this._step+1)%this.STEPS;
-      if(this._step===0) this._bars++;
-    }
-    this._timer=setTimeout(()=>this._tick(), this.LOOK);
-  }
-
-  _fireStep(s, t) {
-    const v=this._threat, sd=this._sd();
-    const wA=this._sw(v,0.00,0.38);
-    const wP=this._sw(v,0.30,0.30);
-    const wT=this._sw(v,0.62,0.30);
-    const wM=this._sw(v,1.00,0.40);
-
-    // Stufe 2: Sonar-Ping + Metronom-Klick
-    if(wP>0.02){
-      if(s===0)      this._sonar(t, wP*0.55);
-      if(s%4===0)    this._click(t, wP*0.28);
-    }
-
-    // Stufe 3: Bass-Lauf + Herzschlag-Kick + Arpeggio
-    if(wT>0.02){
-      if(s%2===0){
-        const bSeq=[65.41,73.42,77.78,87.31,98.00,103.83,116.54,130.81];
-        this._tensBass(t, bSeq[Math.floor(s/2)%bSeq.length], sd*1.7, wT*0.55);
-      }
-      if(s===0||s===8) this._kick(t, wT*0.68, 0.30);
-      if(s%2===0){
-        const aSeq=[523.25,622.25,783.99,1046.50,1244.51,1567.98,1046.50,783.99];
-        const shift=(Math.floor(this._bars/2)*2)%aSeq.length;
-        this._arp(t, aSeq[(Math.floor(s/2)+shift)%aSeq.length], sd*1.4, wT*0.27);
-      }
-    }
-
-    // Stufe 4: March-Kick + Snare + Reese-Env + Dissonanz
-    if(wM>0.02){
-      if(s===0||s===8)  this._kick(t, wM*0.92, 0.36);
-      if(s===4||s===12) this._snare(t, wM*0.85);
-      if(s===0||s===8){
-        const rg=this._reeseG.gain;
-        rg.cancelScheduledValues(t);
-        rg.setValueAtTime(0.60*wM, t);
-        rg.exponentialRampToValueAtTime(0.07*wM, t+sd*7.5);
-      }
-      if(s%4===0){
-        const dis=[1046.50,1108.73,987.77,830.61];
-        this._disso(t, dis[(s/4)%4], wM*0.44);
-      }
-    }
-  }
-
-  // ── Synthesizer ─────────────────────────────────────────────────
-
-  _sonar(t,vol)   { this._note('sine',880,t,vol*0.50,1.4); }
-  _click(t,vol)   { this._note('triangle',1450,t,vol*0.38,0.035); }
-  _arp(t,f,dur,v) { this._note('sine',f,t,v,dur); }
-
-  _kick(t,vol,dur=0.32){
-    const C=this.ctx,o=C.createOscillator(),g=C.createGain();
-    o.frequency.setValueAtTime(160,t);
-    o.frequency.exponentialRampToValueAtTime(28,t+dur*0.75);
-    g.gain.setValueAtTime(vol,t);
-    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
-    o.connect(g); g.connect(this._master);
-    o.start(t); o.stop(t+dur+0.01);
-  }
-
-  _snare(t,vol){
-    const C=this.ctx;
-    const ns=C.createBufferSource(); ns.buffer=this._noiseB;
-    const hp=C.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=2400;
-    const ng=C.createGain();
-    ng.gain.setValueAtTime(vol*0.80,t);
-    ng.gain.exponentialRampToValueAtTime(0.0001,t+0.10);
-    ns.connect(hp); hp.connect(ng); ng.connect(this._master);
-    ns.start(t); ns.stop(t+0.11);
-    this._note('triangle',220,t,vol*0.45,0.055);
-  }
-
-  _tensBass(t,freq,dur,vol){
-    const C=this.ctx,o=C.createOscillator(),lp=C.createBiquadFilter(),g=C.createGain();
-    o.type='sawtooth'; o.frequency.value=freq;
-    lp.type='lowpass'; lp.frequency.value=340; lp.Q.value=1.2;
-    g.gain.setValueAtTime(vol,t);
-    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
-    o.connect(lp); lp.connect(g); g.connect(this._master);
-    o.start(t); o.stop(t+dur+0.01);
-  }
-
-  _disso(t,freq,vol){
-    const C=this.ctx,o=C.createOscillator(),bp=C.createBiquadFilter(),g=C.createGain();
-    o.type='sawtooth'; o.frequency.value=freq;
-    bp.type='bandpass'; bp.frequency.value=freq*1.6; bp.Q.value=3.8;
-    g.gain.setValueAtTime(vol,t);
-    g.gain.exponentialRampToValueAtTime(0.0001,t+0.26);
-    o.connect(bp); bp.connect(g); g.connect(this._master);
-    o.start(t); o.stop(t+0.27);
-  }
-
-  _note(type,freq,t,vol,dur){
-    const C=this.ctx,o=C.createOscillator(),g=C.createGain();
-    o.type=type; o.frequency.value=freq;
-    g.gain.setValueAtTime(vol,t);
-    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
-    o.connect(g); g.connect(this._master);
-    o.start(t); o.stop(t+dur+0.01);
-  }
-
-  // ── Hilfsfunktionen ─────────────────────────────────────────────
-
-  _mkNoiseBuf(C,dur){
-    const sz=Math.ceil(C.sampleRate*dur),buf=C.createBuffer(1,sz,C.sampleRate),d=buf.getChannelData(0);
-    for(let i=0;i<sz;i++) d[i]=Math.random()*2-1;
-    return buf;
-  }
-
-  _mkDistCurve(amount){
-    const n=256,c=new Float32Array(n),k=amount;
-    for(let i=0;i<n;i++){const x=(i*2)/n-1;c[i]=((Math.PI+k)*x)/(Math.PI+k*Math.abs(x));}
-    return c;
-  }
-
-  _sw(t,center,radius){ return Math.max(0,1-Math.abs(t-center)/radius); }
-
-  // ── Bedrohungslevel ─────────────────────────────────────────────
-
-  updateThreatLevel(value){
-    value=Math.max(0,Math.min(1,value));
-    this._threat=value;
-    if(!this._master) return;
-    const now=this.ctx.currentTime, at=now+this.FADE;
-    const ramp=(name,target)=>{
-      const g=this._lg[name]; if(!g) return;
-      g.gain.cancelScheduledValues(now);
-      g.gain.setValueAtTime(g.gain.value,now);
-      g.gain.linearRampToValueAtTime(target,at);
-    };
-    ramp('ambient', this._sw(value,0.00,0.38));
-    ramp('march',   this._sw(value,1.00,0.40));
-  }
-
-  get threatLevel(){ return this._threat; }
-}
 
 </script>
 

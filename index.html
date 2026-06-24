@@ -178,7 +178,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--color-border-secondar
   <p class="sl" style="margin-top:0">SPIELEINSTELLUNGEN</p>
   <div class="card">
     <div class="g2" style="margin-bottom:10px">
-      <div><label style="font-size:12px;color:var(--color-text-secondary);display:block;margin-bottom:4px">Startzeit (Min.)</label><input type="number" id="cS" value="15" min="1" max="90" style="width:100%"></div>
+      <div><label style="font-size:12px;color:var(--color-text-secondary);display:block;margin-bottom:4px">Startzeit (Min.)</label><input type="number" id="cS" value="25" min="1" max="90" style="width:100%"></div>
       <div><label style="font-size:12px;color:var(--color-text-secondary);display:block;margin-bottom:4px">Strafe (Sek.)</label><input type="number" id="cP" value="60" min="0" max="300" style="width:100%"></div>
     </div>
     <div><label style="font-size:12px;color:var(--color-text-secondary);display:block;margin-bottom:4px">KI rückt automatisch vor alle ... Sek. (0 = aus)</label><input type="number" id="cK" value="120" min="0" max="600" style="width:100%"></div>
@@ -232,7 +232,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--color-border-secondar
   <div class="pb" id="pBar"></div>
   <div class="tbox" id="tBox">
     <p style="font-size:11px;letter-spacing:2px;color:var(--color-text-secondary);margin-bottom:4px">VERBLEIBENDE LEBENSZEIT</p>
-    <div class="tnum" id="tD">15:00</div>
+    <div class="tnum" id="tD">25:00</div>
     <div class="tfb" id="tFb"></div>
   </div>
   <div class="twrap">
@@ -253,13 +253,28 @@ input:focus,textarea:focus,select:focus{border-color:var(--color-border-secondar
     <p style="font-size:13px;line-height:1.7;white-space:pre-wrap" id="stD">–</p>
   </div>
   <div id="inp"></div>
-  <button class="jkb" id="jkBtn" onclick="useJoker()"><i class="ti ti-bulb"></i><span>Joker nutzen (–2 Min.)</span></button>
+  <button class="jkb" id="jkBtn" onclick="useJoker()"><i class="ti ti-bulb"></i><span>Joker nutzen (–3 Min.)</span></button>
   <div class="jkh" id="jkH" style="display:none"></div>
 </div>
 
 <!-- UNLOCK / NÄCHSTE LOCATION -->
 <div id="sunlock" class="s">
-  <div class="ulreveal" style="text-align:center;padding:2.5rem 0 1.25rem">
+  <!-- Live-Timer + Bedrohungsleiste (sichtbar während Codewort-Suche) -->
+  <div class="tbox" id="ulTBox" style="padding:.55rem 1rem;margin-bottom:8px">
+    <p style="font-size:10px;letter-spacing:2px;color:var(--color-text-secondary);margin-bottom:2px">VERBLEIBENDE LEBENSZEIT</p>
+    <div class="tnum" id="ulTD" style="font-size:38px">--:--</div>
+    <div class="tfb" id="ulTFb"></div>
+  </div>
+  <div class="twrap" style="padding:.55rem .85rem;margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;font-size:10px;font-weight:500;margin-bottom:4px">
+      <span style="color:#1D9E75">🛡 HACKER</span>
+      <span style="font-size:9px;letter-spacing:1.5px;color:var(--color-text-secondary)">BEDROHUNGS-LEISTE</span>
+      <span style="color:#A32D2D">KI 💥</span>
+    </div>
+    <div class="tbar" id="ulThBar"></div>
+    <div class="za" id="ulZA"></div>
+  </div>
+  <div class="ulreveal" style="text-align:center;padding:1.25rem 0 1rem">
     <i class="ti ti-lock-open" style="font-size:48px;color:#1D9E75"></i>
     <p style="font-size:11px;letter-spacing:2px;color:var(--color-text-success);margin-top:1rem;margin-bottom:4px">ZUGANG GEKNACKT</p>
     <p style="font-size:14px;font-weight:500;color:var(--color-text-success);min-height:20px" id="ulBonus"></p>
@@ -367,7 +382,7 @@ const sS=async(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}};
 async function getCfg(){
   const st=await sG('intime-cfg');
   if(st&&Array.isArray(st.stations)&&st.defv===DEFV)return st;
-  const c={startMin:st?.startMin??20,penSec:st?.penSec??60,kiSec:st?.kiSec??90,stations:JSON.parse(JSON.stringify(DEF)),defv:DEFV};
+  const c={startMin:st?.startMin??25,penSec:st?.penSec??60,kiSec:st?.kiSec??120,stations:JSON.parse(JSON.stringify(DEF)),defv:DEFV};
   await sS('intime-cfg',c);
   return c;
 }
@@ -378,17 +393,30 @@ const SS=id=>{document.querySelectorAll('.s').forEach(s=>s.classList.remove('on'
 const TC={h:'#1D9E75',n:'#888780',z1:'#FAC775',z2:'#EF9F27',z3:'#E24B4A',z4:'#A32D2D'};
 const tC=i=>i>=9?TC.z4:i>=8?TC.z3:i>=7?TC.z2:i>=6?TC.z1:TC.n;
 
-let cfg=null,grp=null,tick=null,aC=null;
+let cfg=null,grp=null,tick=null,aC=null,audioEngine=null;
+
+// ── Audio-Fallback: beim allerersten Tap/Klick entsperren ────────
+// (Fängt Fälle ab, in denen der User direkt in ein laufendes Spiel springt)
+(function(){
+  const unlock=()=>{
+    try{
+      if(audioEngine&&!audioEngine.isInitialized)audioEngine.init();
+      if(audioEngine&&!audioEngine.isRunning)audioEngine.start();
+    }catch{}
+  };
+  document.addEventListener('click',unlock,{capture:true,once:true});
+  document.addEventListener('touchstart',unlock,{capture:true,once:true,passive:true});
+})();
 const L1_IMG="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAEsASwDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDyeiiiv6iPywKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKpXOowRTtbIfMnVdxQDNP03S/GWtvt0nwtrV0D0KWxRfzNfKZpxhl+X1HSbc5LdR6erdl+Z62FybEYiKnok+5aorptC+C3xg1C5hM/h5dPhLjf9qugpx612Fv8APHodI7mXSQD1kW4BA544rny7jfAYubjUvTsr3laz8tOppicixFFJx970PKaK940X9nW6uB5l74otVQMVIghLHI9zxXQ2v7OPh5QPtPiLU3PcJGgH611VeMsopu3tL+if8AkZQyXGS+zb5o+ZqK+qYP2fPBEYUSXmqSkdSXAz+VWovgL8PkB3x6jJ9bkjFckuO8rW3M/l/wTZZBin2+8+TKK+tf+FEfDv8A59r/AP8AAs0f8KI+Hf8Az7ah/wCBZqf9fcs7T+5f5j/1fxXdff8A8A+SqK+rpPgD4DYHa+pJk9ps4qncfs7+EJCTDq+rQg9ANjY/OtI8dZU93Jf9u/5EvIcWu33ny7RX0bf/ALN9iUb7B4nnVsfL58AI/HFcpqP7P/iaN5V07VdNvmibawJMf867qPF2UVdq1vVNfoYTyfGQ+xf0seO0V6FrPwD+KMavNZppU67Bsjjuxu3d81xOr/Dz4raKC+oeDNTaMZ+eBvMU49K8fEcfYKjWdOMJSSdrq1n5rU7KfD9ecFJySfbUp0Vm293qEd9FZahpl7aTStsVbiBoyT6c1oRurrlTnBIP1FfQ5TxBgs1uqEveW6ej/r0POxmXV8JrUWndbDqKKK9s4QooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACvQ/gN4Ii8aeMPL1CJn0qyTzboA43Z4VM9snP5V55X2F+zz4WHhr4fW8s8e291D/AEqc45AI+RfwXB+pNfMcWZs8uwDdN2nPReXd/JfjY9TKMIsTiFzL3VqzpdE8D+DdAJfSvDWmW0rfekEALH6k1thvLjCR4RB0VRgCkmlHLMcADJPoKwYdV1S8hW4tLC1SGQkRfabkxu/vgKa/DpSc5OUnds+5SSVkbZk5xms4XojlRn8v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";
 
 // ── Alle Locations aus dem Spieldesign-Dokument – sofort spielbar ──
 const DEF=[
- {title:"Location 1 – Teenieclub: Der Hardcore Gamer",loc:"Teenieclub",story:"Ein genialer Cyber-Hacker hat die PS5 lahmgelegt. Das Datei-System ist in 8 Fragmente zersplittert – setzt sie wieder zusammen, um an die Zugangscodes zu kommen!",desc:"📍 Teenieclub – PS5\n\n🧩 SCHIEBE-RÄTSEL\n\nBringt die Fragmente 1–8 in die richtige Reihenfolge. Tippt eine Kachel neben dem freien Feld, um sie zu verschieben.\n\nZiel: 1 2 3 / 4 5 6 / 7 8 _",hint:"",type:"slide",bonMin:6,wordCode:"",qrPin:"7291"},
+ {title:"Location 1 – Teenieclub: Der Hardcore Gamer",loc:"Teenieclub",story:"Ein genialer Cyber-Hacker hat die PS5 lahmgelegt. Das Datei-System ist in 8 Fragmente zersplittert – setzt sie wieder zusammen, um an die Zugangscodes zu kommen!",desc:"📍 Teenieclub – PS5\n\n🧩 SCHIEBE-RÄTSEL\n\nBringt die Fragmente 1–8 in die richtige Reihenfolge. Tippt eine Kachel neben dem freien Feld, um sie zu verschieben.\n\nZiel: 1 2 3 / 4 5 6 / 7 8 _",hint:"",type:"slide",bonMin:5,wordCode:"",qrPin:"7291"},
  {title:"Location 2 – Miniclub: Netzwerk-Permutation",loc:"Miniclub",story:"Vier Maskottchen wollen sich ins Kindernetzwerk einloggen – aber die KI hat ihre Passwörter (Lieblingsfarben) durcheinandergewürfelt!",desc:"📍 Miniclub\n\nOrdnet die Lieblingsfarben zu:\n🐰 Hannah Hase   🦊 Fridolin Fuchs\n🐱 Lila Luchs   🦋 Sally Schmetterling\n\nFarben: Blau, Gelb, Grün, Rot\n\nHinweise:\n• Hannah liebt Blau.\n• Sallys Farbe kommt im Alphabet DIREKT nach Grün.\n• Fridolin hat nicht Grün.\n\n",hint:"Alphabet: Blau, Gelb, Grün, Rot. ",type:"choice",bonMin:5,wordCode:"IHR",options:["Hannah=Blau, Fridolin=Gelb, Lila=Grün, Sally=Rot","Hannah=Rot, Fridolin=Blau, Lila=Gelb, Sally=Grün","Hannah=Blau, Fridolin=Grün, Lila=Rot, Sally=Gelb","Hannah=Gelb, Fridolin=Rot, Lila=Blau, Sally=Grün"],correctIdx:0,qrPin:"4538"},
- {title:"Location 3 – Rezeption: Versteckte Tinte",loc:"Rezeption",story:"An der Rezeption hat der Hacker vier Zahlen in unsichtbarer Tinte hinterlassen..",desc:"📍 Rezeption\n\n🔦 UV-LAMPE\n\nWischen, wischen, wischen..\n\n",hint:"Nach physischer Größe sortieren",type:"uv",bonMin:7,wordCode:"HABT",code:"7395",uvSize:true,qrPin:"8156"},
- {title:"Location 4 – Tiefgarage Go-Kart: Ampel-Hack",loc:"Tiefgarage Go-Kart",story:"Die KI hat das Ampel-System der Go-Kart-Strecke übernommen. Knackt die Schaltsequenz!",desc:"📍 Tiefgarage Go-Kart\n\n5 Ampeln schalten nacheinander auf Grün.\nFindet die richtige Reihenfolge!\n\nHinweise:\n🚦 Ampel 1 schaltet ZUERST.\n🚦 Ampel 4 schaltet ZULETZT.\n🚦 Ampel 3 schaltet DIREKT NACH Ampel 1.\n🚦 Ampel 5 schaltet DIREKT VOR Ampel 2.\n\nGebt die Reihenfolge als 5 Ziffern ein.",hint:"Ampel 1 zuerst (Pos.1), Ampel 4 zuletzt (Pos.5). 3 direkt nach 1 → Pos.2=3. 5 direkt vor 2 → Pos.3=5, Pos.4=2. Lösung: 13524",type:"code",bonMin:7,wordCode:"DIE",code:"13524",qrPin:"3624"},
+ {title:"Location 3 – Rezeption: Versteckte Tinte",loc:"Rezeption",story:"An der Rezeption hat der Hacker vier Zahlen in unsichtbarer Tinte hinterlassen..",desc:"📍 Rezeption\n\n🔦 UV-LAMPE\n\nWischen, wischen, wischen..\n\n",hint:"Nach physischer Größe sortieren",type:"uv",bonMin:5,wordCode:"HABT",code:"7395",uvSize:true,qrPin:"8156"},
+ {title:"Location 4 – Tiefgarage Go-Kart: Ampel-Hack",loc:"Tiefgarage Go-Kart",story:"Die KI hat das Ampel-System der Go-Kart-Strecke übernommen. Knackt die Schaltsequenz!",desc:"📍 Tiefgarage Go-Kart\n\n5 Ampeln schalten nacheinander auf Grün.\nFindet die richtige Reihenfolge!\n\nHinweise:\n🚦 Ampel 1 schaltet ZUERST.\n🚦 Ampel 4 schaltet ZULETZT.\n🚦 Ampel 3 schaltet DIREKT NACH Ampel 1.\n🚦 Ampel 5 schaltet DIREKT VOR Ampel 2.\n\nGebt die Reihenfolge als 5 Ziffern ein.",hint:"Ampel 1 zuerst (Pos.1), Ampel 4 zuletzt (Pos.5). 3 direkt nach 1 → Pos.2=3. 5 direkt vor 2 → Pos.3=5, Pos.4=2. Lösung: 13524",type:"code",bonMin:5,wordCode:"DIE",code:"13524",qrPin:"3624"},
  {title:"Location 5 – Große Rutsche: Mechanischer Bypass-Würfel",loc:"Große Rutsche",story:"Die KI hat das System komplett gesperrt – die digitale Firewall blockiert alles. Um neu zu starten, müsst ihr die Infrastruktur PHYSISCH überbrücken. Im Serverraum steht ein mechanischer Sicherheitswürfel: schickt die leitfähige Metallkugel über die EINE richtige Bahn, damit sie den Hauptstromkreis schließt – den Bypass.",desc:"📍 Große Rutsche / Serverraum\n\n🧊 BYPASS-WÜRFEL\n\nDreht den Würfel (ziehen), zoomt (Pinch) und verfolgt die 4 Bahnen – auch durch die verdeckten Tunnel im Inneren.\n\nNur EINE Bahn schließt den Stromkreis. Tippt A, B, C oder D, um die Kugel loszuschicken.\n\n⚠️ Falsche Bahn: −2 Minuten Spielzeit!",hint:"Die unscheinbarste Bahn führt oft am weitesten. Verfolgt jede Bahn bis zum echten Ende – nicht nur bis sie aus dem Blickfeld verschwindet.",type:"tube",bonMin:5,wordCode:"WELT",code:"C",qrPin:"5049"},
- {title:"Location 6 – Tiefgarage Stromhafen: Schalter-Sequenz",loc:"Tiefgarage Stromhafen",story:"Der Stromhafen versorgt den KI-Mainframe. Nur die richtige Schalterkombination öffnet die Notfall-Gänge!",desc:"📍 Tiefgarage Stromhafen\n\n6 Schalter: An (1) oder Aus (0)\n\nHinweise:\n⚡ Schalter 1 ist AN.\n⚡ Schalter 3 und Schalter 4 sind AUS.\n⚡ Schalter 2 ist das GEGENTEIL von Schalter 5.\n⚡ Schalter 2 ist AUS.\n⚡ Schalter 6 ist AN.\n\nGebt die Kombination als Ziffern ein (An=1, Aus=0).",hint:"S1=1, S2=0, S3=0, S4=?, S5=? 6=?",type:"code",bonMin:7,wordCode:"DER",code:"100011",qrPin:"9817"},
+ {title:"Location 6 – Tiefgarage Stromhafen: Schalter-Sequenz",loc:"Tiefgarage Stromhafen",story:"Der Stromhafen versorgt den KI-Mainframe. Nur die richtige Schalterkombination öffnet die Notfall-Gänge!",desc:"📍 Tiefgarage Stromhafen\n\n6 Schalter: An (1) oder Aus (0)\n\nHinweise:\n⚡ Schalter 1 ist AN.\n⚡ Schalter 3 und Schalter 4 sind AUS.\n⚡ Schalter 2 ist das GEGENTEIL von Schalter 5.\n⚡ Schalter 2 ist AUS.\n⚡ Schalter 6 ist AN.\n\nGebt die Kombination als Ziffern ein (An=1, Aus=0).",hint:"S1=1, S2=0, S3=0, S4=?, S5=? 6=?",type:"code",bonMin:5,wordCode:"DER",code:"100011",qrPin:"9817"},
  {title:"Location 7 – Hüpfburg Abenteuerland: Druck-Balancing",loc:"Hüpfburg Abenteuerland",story:"Die Hüpfburg ist das getarnte Kühlsystem des Mainframes. Bringt den Luftdruck ins Gleichgewicht!",desc:"📍 Hüpfburg Abenteuerland\n\n4 Luftkanäle brauchen den richtigen Druck (kPa):\n\n💨 Kanal A braucht 100 kPa.\n💨 Kanal B braucht 20 WENIGER als A.\n💨 Kanal C braucht GENAU SO VIEL wie A.\n💨 Kanal D braucht 10 MEHR als B.\n\nGebt die GESAMT-SUMME aller vier Drücke ein.",hint:"A=100, B=80, C=100, D=?. Summe: 100+80+100+? = ",type:"code",bonMin:5,wordCode:"MENSCHEN",code:"370",qrPin:"2673"},
  {title:"Location 8 – Teenieclub: DER MAINFRAME",loc:"Teenieclub – Mainframe",
   story:"Das Finale! Der Hauptkern der KI liegt vor euch. Drei Boss-Phasen mit Zeitlimit – haltet durch und rettet die Welt!",
@@ -460,28 +488,40 @@ function rStL(){document.getElementById('stL').innerHTML=cfg.stations.map((s,i)=
   <textarea rows="2" placeholder="Story..." oninput="cfg.stations[${i}].story=this.value" style="width:100%;font-size:12px;resize:vertical;margin-bottom:5px">${es(s.story||'')}</textarea>
   <textarea rows="3" placeholder="Aufgabe..." oninput="cfg.stations[${i}].desc=this.value" style="width:100%;font-size:13px;resize:vertical;margin-bottom:5px">${es(s.desc||'')}</textarea>
   ${s.type!=='boss'?`<input value="${es(s.hint||'')}" placeholder="Joker-Hinweis" oninput="cfg.stations[${i}].hint=this.value" style="width:100%;font-size:12px;margin-bottom:8px">`:''}
-  ${(s.type==='code'||s.type==='uv'||s.type==='tube')?`<div class="g2" style="margin-bottom:6px"><div><label style="font-size:11px;color:var(--color-text-secondary);display:block;margin-bottom:2px">Code</label><input value="${es(s.code||'')}" oninput="cfg.stations[${i}].code=this.value.toUpperCase();this.value=this.value.toUpperCase()" style="font-family:var(--font-mono);letter-spacing:2px;width:100%;font-size:13px"></div><div><label style="font-size:11px;color:var(--color-text-secondary);display:block;margin-bottom:2px">Bonus (Min.)</label><input type="number" value="${s.bonMin||0}" min="0" max="60" oninput="cfg.stations[${i}].bonMin=parseInt(this.value)||0" style="width:100%"></div></div>`:''}
-  ${s.type==='choice'?`<div style="margin-bottom:6px"><p style="font-size:11px;color:var(--color-text-secondary);margin-bottom:4px">Antworten (richtige markieren):</p>${(s.options||['','','','']).map((o,j)=>`<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="radio" name="cr${i}" ${(s.correctIdx||0)===j?'checked':''} onchange="cfg.stations[${i}].correctIdx=${j}" style="width:16px;min-width:16px"><input value="${es(o)}" placeholder="${['A','B','C','D'][j]}" oninput="if(!cfg.stations[${i}].options)cfg.stations[${i}].options=['','','',''];cfg.stations[${i}].options[${j}]=this.value" style="flex:1;font-size:13px"></div>`).join('')}<div style="margin-top:6px"><label style="font-size:11px;color:var(--color-text-secondary);display:block;margin-bottom:2px">Bonus (Min.)</label><input type="number" value="${s.bonMin||7}" min="0" max="60" oninput="cfg.stations[${i}].bonMin=parseInt(this.value)||0" style="width:80px"></div></div>`:''}
+  ${(s.type==='code'||s.type==='uv'||s.type==='tube')?`<div class="g2" style="margin-bottom:6px"><div><label style="font-size:11px;color:var(--color-text-secondary);display:block;margin-bottom:2px">Code</label><input value="${es(s.code||'')}" oninput="cfg.stations[${i}].code=this.value.toUpperCase();this.value=this.value.toUpperCase()" style="font-family:var(--font-mono);letter-spacing:2px;width:100%;font-size:13px"></div><div><label style="font-size:11px;color:var(--color-text-secondary);display:block;margin-bottom:2px">Bonus (Min.)</label><input type="number" value="${s.bonMin||5}" min="0" max="60" oninput="cfg.stations[${i}].bonMin=parseInt(this.value)||0" style="width:100%"></div></div>`:''}
+  ${s.type==='choice'?`<div style="margin-bottom:6px"><p style="font-size:11px;color:var(--color-text-secondary);margin-bottom:4px">Antworten (richtige markieren):</p>${(s.options||['','','','']).map((o,j)=>`<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="radio" name="cr${i}" ${(s.correctIdx||0)===j?'checked':''} onchange="cfg.stations[${i}].correctIdx=${j}" style="width:16px;min-width:16px"><input value="${es(o)}" placeholder="${['A','B','C','D'][j]}" oninput="if(!cfg.stations[${i}].options)cfg.stations[${i}].options=['','','',''];cfg.stations[${i}].options[${j}]=this.value" style="flex:1;font-size:13px"></div>`).join('')}<div style="margin-top:6px"><label style="font-size:11px;color:var(--color-text-secondary);display:block;margin-bottom:2px">Bonus (Min.)</label><input type="number" value="${s.bonMin||5}" min="0" max="60" oninput="cfg.stations[${i}].bonMin=parseInt(this.value)||0" style="width:80px"></div></div>`:''}
   ${s.type==='boss'?(s.boss||[]).map((b,j)=>`<div style="border:0.5px solid var(--color-border-tertiary);border-radius:6px;padding:8px;margin-bottom:6px"><p style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin-bottom:4px">PHASE ${j+1} · ${b.mini==='pipes'?'Mini: Leitungen':b.mini==='audio'?'Mini: Audio':b.mini==='numlock'?'Zahlenschloss':'Code'}</p><input value="${es(b.t)}" placeholder="Phasen-Titel" oninput="cfg.stations[${i}].boss[${j}].t=this.value" style="width:100%;font-size:13px;margin-bottom:5px"><textarea rows="3" placeholder="Aufgaben-Text..." oninput="cfg.stations[${i}].boss[${j}].d=this.value" style="width:100%;font-size:12px;resize:vertical;margin-bottom:5px">${es(b.d||'')}</textarea><input value="${es(b.h||'')}" placeholder="Joker-Hinweis" oninput="cfg.stations[${i}].boss[${j}].h=this.value" style="width:100%;font-size:12px;margin-bottom:8px"><div class="g2"><div><label style="font-size:11px;color:var(--color-text-secondary);display:block;margin-bottom:2px">${(b.mini&&b.mini!=='numlock')?'Mini-Spiel':'Code'}</label>${(b.mini&&b.mini!=='numlock')?`<input value="${b.mini==='pipes'?'Leitungen drehen':b.mini==='gears'?'Zahnräder':'Audio-Signal'}" disabled style="width:100%;font-size:12px;opacity:.6">`:`<input value="${es(b.c)}" oninput="cfg.stations[${i}].boss[${j}].c=this.value.toUpperCase();this.value=this.value.toUpperCase()" style="font-family:var(--font-mono);width:100%;font-size:12px">`}</div><div><label style="font-size:11px;color:var(--color-text-secondary);display:block;margin-bottom:2px">Limit (Sek.)</label><input type="number" value="${b.lim}" min="30" max="900" oninput="cfg.stations[${i}].boss[${j}].lim=parseInt(this.value)||180" style="width:100%"></div></div></div>`).join(''):''}
 </div>`).join('');}
 
 const chT=(i,t)=>{cfg.stations[i].type=t;if(t==='choice'&&!cfg.stations[i].options)cfg.stations[i].options=['','','',''];rStL();};
-const addSt=()=>{cfg.stations.push({title:`Location ${cfg.stations.length+1}`,story:'',desc:'[Aufgabe]',hint:'',type:'code',code:'CODE',bonMin:6});rStL();setTimeout(()=>document.getElementById('stL').lastElementChild?.scrollIntoView({behavior:'smooth'}),50);};
+const addSt=()=>{cfg.stations.push({title:`Location ${cfg.stations.length+1}`,story:'',desc:'[Aufgabe]',hint:'',type:'code',code:'CODE',bonMin:5});rStL();setTimeout(()=>document.getElementById('stL').lastElementChild?.scrollIntoView({behavior:'smooth'}),50);};
 const dlS=i=>{if(cfg.stations.length<=1)return;cfg.stations.splice(i,1);rStL();};
-async function saveCfg(){cfg.startMin=parseInt(document.getElementById('cS').value)||15;cfg.penSec=parseInt(document.getElementById('cP').value)||60;cfg.kiSec=parseInt(document.getElementById('cK').value)||0;cfg.defv=DEFV;await sS('intime-cfg',cfg);const m=document.getElementById('cfgM');m.style.color='var(--color-text-success)';m.textContent=`✓ Gespeichert! (${cfg.stations.length} Locations, ${cfg.startMin} Min., KI-Takt ${cfg.kiSec||'aus'})`;setTimeout(()=>m.textContent='',4000);}
-async function resetCfg(){cfg={startMin:20,penSec:60,kiSec:90,stations:JSON.parse(JSON.stringify(DEF)),defv:DEFV};document.getElementById('cS').value=20;document.getElementById('cP').value=60;document.getElementById('cK').value=90;rStL();await sS('intime-cfg',cfg);const m=document.getElementById('cfgM');m.style.color='var(--color-text-success)';m.textContent='✓ Standard-Spiel wiederhergestellt!';setTimeout(()=>m.textContent='',4000);}
+async function saveCfg(){cfg.startMin=parseInt(document.getElementById('cS').value)||25;cfg.penSec=parseInt(document.getElementById('cP').value)||60;cfg.kiSec=parseInt(document.getElementById('cK').value)||0;cfg.defv=DEFV;await sS('intime-cfg',cfg);const m=document.getElementById('cfgM');m.style.color='var(--color-text-success)';m.textContent=`✓ Gespeichert! (${cfg.stations.length} Locations, ${cfg.startMin} Min., KI-Takt ${cfg.kiSec||'aus'})`;setTimeout(()=>m.textContent='',4000);}
+async function resetCfg(){cfg={startMin:25,penSec:60,kiSec:120,stations:JSON.parse(JSON.stringify(DEF)),defv:DEFV};document.getElementById('cS').value=25;document.getElementById('cP').value=60;document.getElementById('cK').value=120;rStL();await sS('intime-cfg',cfg);const m=document.getElementById('cfgM');m.style.color='var(--color-text-success)';m.textContent='✓ Standard-Spiel wiederhergestellt!';setTimeout(()=>m.textContent='',4000);}
 
 // ── Start ──
 async function startGame(){
+  // ── Audio SOFORT entsperren – VOR jedem await! ─────────────
+  // gA() verwendet den GLEICHEN Context wie die Spielsounds (pHappy etc.)
+  try{
+    if(!audioEngine){audioEngine=new ProceduralAudioEngine();}
+    if(!audioEngine.isInitialized)audioEngine.init();   // Init oder Re-Init
+    if(!audioEngine.isRunning)audioEngine.start();
+  }catch(e){console.warn('[Audio]',e);}
+
   const name=(document.getElementById('jN').value||'').trim(),e=document.getElementById('jE');
   if(!name){e.textContent='Bitte Team-Name eingeben.';return;}
   let c=cfg;if(!c)c=await getCfg();
-  if(!c){c={startMin:20,penSec:60,kiSec:90,stations:JSON.parse(JSON.stringify(DEF)),defv:DEFV};await sS('intime-cfg',c);}
+  if(!c){c={startMin:25,penSec:60,kiSec:120,stations:JSON.parse(JSON.stringify(DEF)),defv:DEFV};await sS('intime-cfg',c);}
   cfg=c;e.textContent='';
   const gk='intime-g-'+sk(name),ex=await sG(gk);
   if(ex&&!ex.go&&!ex.fin){grp=ex;if(!grp.jku)grp.jku=[];if(grp.th===undefined)grp.th=5;if(grp.bp===undefined)grp.bp=0;}
   else{grp={name,startSec:cfg.startMin*60,startTs:Date.now(),bonus:0,cur:0,fin:false,go:false,finTime:null,jku:[],th:5,bp:0,bpStart:0,bkp:false,ph1:false,lastKi:Date.now()};await sS(gk,grp);let gs=(await sG('intime-gs'))||[];if(!gs.includes(name)){gs.push(name);await sS('intime-gs',gs);}}
   SS('sga');initGame();
+  // ── Audio auf aktuellen Threat-Level synchronisieren ─────────
+  try{
+    if(audioEngine?.isRunning)audioEngine.updateThreatLevel(Math.min((grp.th||5)/10,1));
+  }catch(e){console.warn('[Audio sync]',e);}
 }
 
 const gR=()=>!grp?0:Math.max(0,grp.startSec+grp.bonus-(Date.now()-grp.startTs)/1000);
@@ -505,7 +545,14 @@ function rTh(){
   const za=document.getElementById('zA');
   const z=pos>=9?['za3','🚨 ZONE 4: Nuklearer Pre-Launch! Explosion unmittelbar!']:pos>=8?['za3','⚠️ ZONE 3: Automatisierte Rüstung! Joker gesperrt!']:pos>=7?['za2','⚡ ZONE 2: Drohnen-Patrouille! Strafe ×2!']:pos>=6?['za1','📡 ZONE 1: Smart-Home-Meuterei! Nicht absprechen!']:null;
   if(z){za.className='za '+z[0];za.textContent=z[1];za.style.display='block';}else za.style.display='none';
+  // Unlock-Screen Bedrohungsleiste mitspiegeln
+  const ulBar=document.getElementById('ulThBar');
+  if(ulBar)ulBar.innerHTML=bar.innerHTML;
+  const ulZa=document.getElementById('ulZA');
+  if(ulZa){if(z){ulZa.className='za '+z[0];ulZa.textContent=z[1];ulZa.style.display='block';}else ulZa.style.display='none';}
   const bi=document.getElementById('bkpInfo');if(bi)bi.style.display=grp.bkp?'block':'none';
+  // ── Audio: Bedrohungslevel ──────────────────────────────────
+  if(audioEngine?.isRunning&&audioEngine.ctx)audioEngine.updateThreatLevel(Math.min((grp.th||0)/10,1));
 }
 
 function rSt(){
@@ -522,6 +569,9 @@ function tickT(){
   const r=gR(),el=document.getElementById('tD'),box=document.getElementById('tBox');
   el.textContent=fm(r);el.className='tnum';
   if(r<180){el.classList.add('d');box.classList.add('cr');}else if(r<300){el.classList.add('w');box.classList.remove('cr');}else box.classList.remove('cr');
+  // Unlock-Screen Mini-Timer mitspiegeln
+  const ulEl=document.getElementById('ulTD'),ulBox=document.getElementById('ulTBox');
+  if(ulEl){ulEl.textContent=fm(r);ulEl.className='tnum'+(r<180?' d':r<300?' w':'');if(ulBox){if(r<180)ulBox.classList.add('cr');else ulBox.classList.remove('cr');}}
   if(r<=0&&grp&&!grp.go){doGO('ZEIT ABGELAUFEN','Lebenszeit aufgebraucht.');return;}
   if(cfg.kiSec>0&&grp&&!grp.go&&!grp.fin){
     const interval=cfg.kiSec*(grp.ph1?1.5:1)*1000;
@@ -1012,7 +1062,7 @@ function rInp(){
       c.innerHTML=`<button onclick="startBoss()" style="width:100%;padding:1.25rem;font-size:16px;display:flex;align-items:center;justify-content:center;gap:8px"><i class="ti ti-swords" style="font-size:22px"></i> BOSS-BATTLE STARTEN</button>`;
     }else{
       const head=`<div class="bosshdr"><span style="font-size:12px;font-weight:500;color:var(--color-text-danger)">⚔️ ${es(b.t)} (${grp.bp+1}/3)</span><span class="bosstime" id="bossT">${fm(b.lim)}</span></div><div class="card"><p style="font-size:13px;line-height:1.7;white-space:pre-wrap">${es(b.d)}</p></div>`;
-      const hintBtn=`<button onclick="bossHint()" class="jkb" id="bhBtn"><i class="ti ti-bulb"></i> Boss-Joker (–2 Min.)</button><div class="jkh" id="bhH" style="display:none"></div>`;
+      const hintBtn=`<button onclick="bossHint()" class="jkb" id="bhBtn"><i class="ti ti-bulb"></i> Boss-Joker (–3 Min.)</button><div class="jkh" id="bhH" style="display:none"></div>`;
       if(b.mini==='pipes'){
         c.innerHTML=head+`<div class="card" style="padding-top:1.25rem;padding-bottom:1.25rem"><div id="puz"></div></div>`+hintBtn;
         renderPipes(document.getElementById('puz'),bossWin);
@@ -1070,6 +1120,7 @@ async function bossWin(){
   if(grp.bp>=2){
     grp.fin=true;grp.finTime=Math.round(gR());grp.th=0;
     await sS('intime-g-'+sk(grp.name),grp);clearInterval(tick);
+    audioEngine?.fadeOut(3.0);
     document.getElementById('vN').textContent=grp.name;document.getElementById('vT').textContent=fm(grp.finTime);SS('svic');return;
   }
   grp.bp++;grp.bpStart=Date.now();
@@ -1079,7 +1130,7 @@ async function bossWin(){
 function bossHint(){
   const s=cfg.stations[grp.cur],b=s.boss[grp.bp];
   if(!b.h)return;
-  grp.bonus-=120;fb(false,'–2:00 (Joker)');
+  grp.bonus-=180;fb(false,'–3:00 (Joker)');
   const h=document.getElementById('bhH');if(h){h.textContent=b.h;h.style.display='block';}
   const btn=document.getElementById('bhBtn');if(btn)btn.disabled=true;
   sS('intime-g-'+sk(grp.name),grp);
@@ -1095,6 +1146,7 @@ async function adv(){
   pHappy();
   if(grp.cur>=cfg.stations.length){
     grp.fin=true;grp.finTime=Math.round(gR());await sS('intime-g-'+sk(grp.name),grp);clearInterval(tick);
+    audioEngine?.fadeOut(3.0);
     document.getElementById('vN').textContent=grp.name;document.getElementById('vT').textContent=fm(grp.finTime);SS('svic');return;
   }
   await sS('intime-g-'+sk(grp.name),grp);
@@ -1158,7 +1210,7 @@ function chkGLPin(){
   else{if(err)err.textContent='Falscher PIN.';[...wrap.querySelectorAll('.cbox')].forEach(b=>b.value='');wrap.querySelectorAll('.cbox')[0]?.focus();}
 }
 
-async function doGO(r,m){clearInterval(tick);grp.go=true;grp.finTime=0;await sS('intime-g-'+sk(grp.name),grp);document.getElementById('goR').textContent=r;document.getElementById('goM').textContent=m;document.getElementById('goN').textContent=grp.name;document.getElementById('goSt').textContent=`${grp.cur}/${cfg.stations.length}`;SS('sgo');}
+async function doGO(r,m){audioEngine?.fadeOut(1.5);clearInterval(tick);grp.go=true;grp.finTime=0;await sS('intime-g-'+sk(grp.name),grp);document.getElementById('goR').textContent=r;document.getElementById('goM').textContent=m;document.getElementById('goN').textContent=grp.name;document.getElementById('goSt').textContent=`${grp.cur}/${cfg.stations.length}`;SS('sgo');}
 
 function uJk(){
   const s=cfg.stations[grp.cur],btn=document.getElementById('jkBtn'),hin=document.getElementById('jkH');if(!btn)return;
@@ -1167,13 +1219,13 @@ function uJk(){
   const hasJoker=s?.hint||s?.type==='slide';
   if(!hasJoker||z3){btn.disabled=true;btn.style.display='flex';btn.innerHTML=z3?'<i class="ti ti-lock"></i> Joker gesperrt (Zone 3: Ressourcen-Sperre)':'<i class="ti ti-bulb"></i> Kein Joker';}
   else if(grp.jku?.includes(grp.cur)){btn.disabled=true;btn.style.display='flex';btn.innerHTML='<i class="ti ti-bulb"></i> Joker verwendet';if(hin){hin.textContent=s.hint||'';hin.style.display=s.hint?'block':'none';}}
-  else{btn.disabled=false;btn.style.display='flex';btn.innerHTML='<i class="ti ti-bulb"></i><span>Joker nutzen (–2 Min.)</span>';if(hin)hin.style.display='none';}
+  else{btn.disabled=false;btn.style.display='flex';btn.innerHTML='<i class="ti ti-bulb"></i><span>Joker nutzen (–3 Min.)</span>';if(hin)hin.style.display='none';}
 }
 async function useJoker(){
   const s=cfg.stations[grp.cur];
   const hasJoker=s?.hint||s?.type==='slide';
   if(!hasJoker||(grp.th||5)>=8||grp.jku?.includes(grp.cur))return;
-  grp.bonus-=120;if(!grp.jku)grp.jku=[];grp.jku.push(grp.cur);fb(false,'–2:00 (Joker)');
+  grp.bonus-=180;if(!grp.jku)grp.jku=[];grp.jku.push(grp.cur);fb(false,'–3:00 (Joker)');
   if(s.type==='slide'){
     // Puzzle auf exakt 4 Züge vor Lösung setzen
     // Zustand [1,2,3,4,8,5,0,7,6]: leeres Feld bei Index 6
@@ -1224,7 +1276,7 @@ async function importCfg(){
     const c=JSON.parse(ta.value);
     if(!c.stations||!Array.isArray(c.stations)){m.style.color='var(--color-text-danger)';m.textContent='Fehler: kein gültiges Config-JSON.';return;}
     cfg=c;cfg.defv=DEFV;
-    document.getElementById('cS').value=cfg.startMin||15;
+    document.getElementById('cS').value=cfg.startMin||25;
     document.getElementById('cP').value=cfg.penSec||60;
     document.getElementById('cK').value=cfg.kiSec??120;
     rStL();
@@ -1325,6 +1377,271 @@ async function loadCodes(){
         :'<span class="qr-pin-label" style="margin-top:9px;display:block">Startpunkt – kein Codewort nötig</span>');
     list.appendChild(card);
   });
+}
+
+
+
+// ══════════════════════════════════════════════════════════════════
+// PROCEDURAL AUDIO ENGINE – Vollständig synthetisierter Soundtrack
+// Verwendet den bestehenden gA()-AudioContext des Spiels.
+// ══════════════════════════════════════════════════════════════════
+
+class ProceduralAudioEngine {
+
+  constructor() {
+    this._threat  = 0;
+    this.isRunning = false;
+    this._master  = null;   // GainNode → Kompressor → Destination
+    this._lg      = {};     // Layer-Gains { ambient, march }
+    this._reeseG  = null;   // Reese-Bass-Hüllkurve
+    this._noiseB  = null;   // Pre-generierter Rausch-Buffer (Snare)
+    this._drones  = [];     // Persistente Oszillatoren (für stop())
+    this.BPM      = 120;
+    this.STEPS    = 16;
+    this._step    = 0;
+    this._bars    = 0;
+    this._next    = 0;
+    this.AHEAD    = 0.12;
+    this.LOOK     = 25;
+    this._timer   = null;
+    this.FADE     = 0.7;
+  }
+
+  // Immer den bestehenden Spiel-AudioContext verwenden → kein zweiter Context!
+  get ctx() { return gA(); }
+  get isInitialized() { return !!this._master; }
+
+  // ── Init: Drone-Nodes aufbauen ──────────────────────────────────
+
+  init() {
+    const C = this.ctx;
+
+    // Master-Gain + sanfter Kompressor
+    this._master = C.createGain();
+    this._master.gain.value = 0.75;
+    const comp = C.createDynamicsCompressor();
+    comp.threshold.value = -14; comp.knee.value = 8;
+    comp.ratio.value = 4; comp.attack.value = 0.003; comp.release.value = 0.25;
+    this._master.connect(comp);
+    comp.connect(C.destination);
+
+    // Pre-generate Snare-Rauschen
+    this._noiseB = this._mkNoiseBuf(C, 0.20);
+
+    // ─ Stufe 1: Cmaj7-Pad (C3 E3 G3 B3 C4) + Warm-Bass C2 ──────
+    const ambL = this._mkLayer(C, 'ambient', 1.0);
+    [[130.81,0.17],[164.81,0.13],[196.00,0.10],[246.94,0.07],[261.63,0.05]].forEach(([f,v]) => {
+      const o=C.createOscillator(), g=C.createGain();
+      o.type='sine'; o.frequency.value=f; g.gain.value=v;
+      o.connect(g); g.connect(ambL); o.start(); this._drones.push(o);
+    });
+    const bO=C.createOscillator(), bG=C.createGain();
+    bO.type='sine'; bO.frequency.value=65.41; bG.gain.value=0.28;
+    bO.connect(bG); bG.connect(ambL); bO.start(); this._drones.push(bO);
+    // Atem-LFO
+    const lfo=C.createOscillator(), lG=C.createGain();
+    lfo.type='sine'; lfo.frequency.value=0.11; lG.gain.value=0.18;
+    lfo.connect(lG); lG.connect(ambL.gain); lfo.start(); this._drones.push(lfo);
+
+    // ─ Stufe 4: Reese-Bass (2× Sägezahn, verstimmt + Distortion) ─
+    const marchL = this._mkLayer(C, 'march', 0.0);
+    const r1=C.createOscillator(), r2=C.createOscillator();
+    r1.type='sawtooth'; r1.frequency.value=65.41;
+    r2.type='sawtooth'; r2.frequency.value=65.41*1.0041;
+    this._reeseG = C.createGain(); this._reeseG.gain.value=0;
+    const ws=C.createWaveShaper(); ws.curve=this._mkDistCurve(65); ws.oversample='4x';
+    const lp=C.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=420; lp.Q.value=1.8;
+    r1.connect(this._reeseG); r2.connect(this._reeseG);
+    this._reeseG.connect(ws); ws.connect(lp); lp.connect(marchL);
+    r1.start(); r2.start(); this._drones.push(r1, r2);
+  }
+
+  _mkLayer(C, name, init) {
+    const g=C.createGain(); g.gain.value=init; g.connect(this._master);
+    this._lg[name]=g; return g;
+  }
+
+  // ── Start / Stop ────────────────────────────────────────────────
+
+  start() {
+    if (this.isRunning) return;
+    if (!this._master) return;
+    this._step=0; this._bars=0;
+    this._next=this.ctx.currentTime+0.05;
+    this.isRunning=true;
+    this._tick();
+  }
+
+  stop() {
+    this.isRunning=false;
+    clearTimeout(this._timer);
+    this._drones.forEach(o=>{try{o.stop();}catch{}});
+    this._drones=[]; this._lg={}; this._reeseG=null;
+    try{this._master?.disconnect();}catch{}
+    this._master=null;
+    // gA()-Context NICHT schließen – er gehört dem Spiel!
+  }
+
+  fadeOut(dur=1.5) {
+    if (!this._master) return;
+    const now=this.ctx.currentTime;
+    this._master.gain.cancelScheduledValues(now);
+    this._master.gain.setValueAtTime(this._master.gain.value, now);
+    this._master.gain.linearRampToValueAtTime(0, now+dur);
+    setTimeout(()=>this.stop(), (dur+0.15)*1000);
+  }
+
+  // ── Scheduler ───────────────────────────────────────────────────
+
+  _sd() { return (60/this.BPM)/(this.STEPS/4); }
+
+  _tick() {
+    if (!this.isRunning) return;
+    const now=this.ctx.currentTime;
+    while (this._next < now+this.AHEAD) {
+      this._fireStep(this._step, this._next);
+      this._next+=this._sd();
+      this._step=(this._step+1)%this.STEPS;
+      if(this._step===0) this._bars++;
+    }
+    this._timer=setTimeout(()=>this._tick(), this.LOOK);
+  }
+
+  _fireStep(s, t) {
+    const v=this._threat, sd=this._sd();
+    const wA=this._sw(v,0.00,0.38);
+    const wP=this._sw(v,0.30,0.30);
+    const wT=this._sw(v,0.62,0.30);
+    const wM=this._sw(v,1.00,0.40);
+
+    // Stufe 2: Sonar-Ping + Metronom-Klick
+    if(wP>0.02){
+      if(s===0)      this._sonar(t, wP*0.55);
+      if(s%4===0)    this._click(t, wP*0.28);
+    }
+
+    // Stufe 3: Bass-Lauf + Herzschlag-Kick + Arpeggio
+    if(wT>0.02){
+      if(s%2===0){
+        const bSeq=[65.41,73.42,77.78,87.31,98.00,103.83,116.54,130.81];
+        this._tensBass(t, bSeq[Math.floor(s/2)%bSeq.length], sd*1.7, wT*0.55);
+      }
+      if(s===0||s===8) this._kick(t, wT*0.68, 0.30);
+      if(s%2===0){
+        const aSeq=[523.25,622.25,783.99,1046.50,1244.51,1567.98,1046.50,783.99];
+        const shift=(Math.floor(this._bars/2)*2)%aSeq.length;
+        this._arp(t, aSeq[(Math.floor(s/2)+shift)%aSeq.length], sd*1.4, wT*0.27);
+      }
+    }
+
+    // Stufe 4: March-Kick + Snare + Reese-Env + Dissonanz
+    if(wM>0.02){
+      if(s===0||s===8)  this._kick(t, wM*0.92, 0.36);
+      if(s===4||s===12) this._snare(t, wM*0.85);
+      if(s===0||s===8){
+        const rg=this._reeseG.gain;
+        rg.cancelScheduledValues(t);
+        rg.setValueAtTime(0.60*wM, t);
+        rg.exponentialRampToValueAtTime(0.07*wM, t+sd*7.5);
+      }
+      if(s%4===0){
+        const dis=[1046.50,1108.73,987.77,830.61];
+        this._disso(t, dis[(s/4)%4], wM*0.44);
+      }
+    }
+  }
+
+  // ── Synthesizer ─────────────────────────────────────────────────
+
+  _sonar(t,vol)   { this._note('sine',880,t,vol*0.50,1.4); }
+  _click(t,vol)   { this._note('triangle',1450,t,vol*0.38,0.035); }
+  _arp(t,f,dur,v) { this._note('sine',f,t,v,dur); }
+
+  _kick(t,vol,dur=0.32){
+    const C=this.ctx,o=C.createOscillator(),g=C.createGain();
+    o.frequency.setValueAtTime(160,t);
+    o.frequency.exponentialRampToValueAtTime(28,t+dur*0.75);
+    g.gain.setValueAtTime(vol,t);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(g); g.connect(this._master);
+    o.start(t); o.stop(t+dur+0.01);
+  }
+
+  _snare(t,vol){
+    const C=this.ctx;
+    const ns=C.createBufferSource(); ns.buffer=this._noiseB;
+    const hp=C.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=2400;
+    const ng=C.createGain();
+    ng.gain.setValueAtTime(vol*0.80,t);
+    ng.gain.exponentialRampToValueAtTime(0.0001,t+0.10);
+    ns.connect(hp); hp.connect(ng); ng.connect(this._master);
+    ns.start(t); ns.stop(t+0.11);
+    this._note('triangle',220,t,vol*0.45,0.055);
+  }
+
+  _tensBass(t,freq,dur,vol){
+    const C=this.ctx,o=C.createOscillator(),lp=C.createBiquadFilter(),g=C.createGain();
+    o.type='sawtooth'; o.frequency.value=freq;
+    lp.type='lowpass'; lp.frequency.value=340; lp.Q.value=1.2;
+    g.gain.setValueAtTime(vol,t);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(lp); lp.connect(g); g.connect(this._master);
+    o.start(t); o.stop(t+dur+0.01);
+  }
+
+  _disso(t,freq,vol){
+    const C=this.ctx,o=C.createOscillator(),bp=C.createBiquadFilter(),g=C.createGain();
+    o.type='sawtooth'; o.frequency.value=freq;
+    bp.type='bandpass'; bp.frequency.value=freq*1.6; bp.Q.value=3.8;
+    g.gain.setValueAtTime(vol,t);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+0.26);
+    o.connect(bp); bp.connect(g); g.connect(this._master);
+    o.start(t); o.stop(t+0.27);
+  }
+
+  _note(type,freq,t,vol,dur){
+    const C=this.ctx,o=C.createOscillator(),g=C.createGain();
+    o.type=type; o.frequency.value=freq;
+    g.gain.setValueAtTime(vol,t);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(g); g.connect(this._master);
+    o.start(t); o.stop(t+dur+0.01);
+  }
+
+  // ── Hilfsfunktionen ─────────────────────────────────────────────
+
+  _mkNoiseBuf(C,dur){
+    const sz=Math.ceil(C.sampleRate*dur),buf=C.createBuffer(1,sz,C.sampleRate),d=buf.getChannelData(0);
+    for(let i=0;i<sz;i++) d[i]=Math.random()*2-1;
+    return buf;
+  }
+
+  _mkDistCurve(amount){
+    const n=256,c=new Float32Array(n),k=amount;
+    for(let i=0;i<n;i++){const x=(i*2)/n-1;c[i]=((Math.PI+k)*x)/(Math.PI+k*Math.abs(x));}
+    return c;
+  }
+
+  _sw(t,center,radius){ return Math.max(0,1-Math.abs(t-center)/radius); }
+
+  // ── Bedrohungslevel ─────────────────────────────────────────────
+
+  updateThreatLevel(value){
+    value=Math.max(0,Math.min(1,value));
+    this._threat=value;
+    if(!this._master) return;
+    const now=this.ctx.currentTime, at=now+this.FADE;
+    const ramp=(name,target)=>{
+      const g=this._lg[name]; if(!g) return;
+      g.gain.cancelScheduledValues(now);
+      g.gain.setValueAtTime(g.gain.value,now);
+      g.gain.linearRampToValueAtTime(target,at);
+    };
+    ramp('ambient', this._sw(value,0.00,0.38));
+    ramp('march',   this._sw(value,1.00,0.40));
+  }
+
+  get threatLevel(){ return this._threat; }
 }
 
 </script>
